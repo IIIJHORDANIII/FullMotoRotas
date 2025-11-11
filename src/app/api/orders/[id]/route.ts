@@ -51,10 +51,11 @@ function ensureAccess(order: Awaited<ReturnType<typeof getOrderOrFail>>, userId:
   throw forbidden("Você não tem acesso a este pedido");
 }
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const { user } = await requireAuth(request, [Role.ADMIN, Role.ESTABLISHMENT, Role.MOTOBOY]);
-    const order = await getOrderOrFail(params.id);
+    const order = await getOrderOrFail(id);
     ensureAccess(order, user.id, user.role);
     return jsonResponse(order);
   } catch (error) {
@@ -66,10 +67,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const { user } = await requireAuth(request, [Role.ADMIN, Role.ESTABLISHMENT, Role.MOTOBOY]);
-    const order = await getOrderOrFail(params.id);
+    const order = await getOrderOrFail(id);
     ensureAccess(order, user.id, user.role);
 
     const body = await request.json();
@@ -83,7 +85,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     }
 
     const updated = await prisma.deliveryOrder.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...data,
         completedAt:

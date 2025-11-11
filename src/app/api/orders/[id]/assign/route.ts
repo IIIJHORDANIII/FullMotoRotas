@@ -15,10 +15,11 @@ async function ensureOrder(id: string) {
   return order;
 }
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const { user } = await requireAuth(request, [Role.ADMIN, Role.ESTABLISHMENT]);
-    const order = await ensureOrder(params.id);
+    const order = await ensureOrder(id);
 
     if (user.role === Role.ESTABLISHMENT) {
       const establishment = await prisma.establishmentProfile.findUnique({ where: { userId: user.id } });
@@ -74,8 +75,9 @@ const updateAssignmentSchema = z.object({
   rejectionReason: z.string().optional(),
 });
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const { user } = await requireAuth(request, Role.MOTOBOY);
 
     const body = await request.json();
@@ -83,7 +85,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     const assignment = await prisma.deliveryAssignment.findFirst({
       where: {
-        orderId: params.id,
+        orderId: id,
         motoboy: { userId: user.id },
       },
     });
@@ -105,12 +107,12 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
       if (data.status === AssignmentStatus.COMPLETED) {
         await tx.deliveryOrder.update({
-          where: { id: params.id },
+          where: { id },
           data: { status: DeliveryStatus.DELIVERED, completedAt: new Date() },
         });
         await tx.deliveryEvent.create({
           data: {
-            orderId: params.id,
+            orderId: id,
             status: DeliveryStatus.DELIVERED,
             message: "Pedido marcado como entregue pelo motoboy",
           },
@@ -120,7 +122,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       if (data.status === AssignmentStatus.REJECTED) {
         await tx.deliveryEvent.create({
           data: {
-            orderId: params.id,
+            orderId: id,
             status: DeliveryStatus.ASSIGNED,
             message: "Motoboy rejeitou a entrega",
             metadata: data.rejectionReason ? { rejectionReason: data.rejectionReason } : undefined,

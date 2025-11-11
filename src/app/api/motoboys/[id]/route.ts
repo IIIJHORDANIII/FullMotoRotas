@@ -35,10 +35,11 @@ async function getMotoboyOrFail(id: string) {
   return motoboy;
 }
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const { user } = await requireAuth(request, [Role.ADMIN, Role.ESTABLISHMENT, Role.MOTOBOY]);
-    const motoboy = await getMotoboyOrFail(params.id);
+    const motoboy = await getMotoboyOrFail(id);
 
     if (user.role === Role.MOTOBOY && motoboy.userId !== user.id) {
       throw forbidden("Você não pode acessar outro motoboy");
@@ -54,10 +55,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const { user } = await requireAuth(request, [Role.ADMIN, Role.MOTOBOY]);
-    const motoboy = await getMotoboyOrFail(params.id);
+    const motoboy = await getMotoboyOrFail(id);
 
     if (user.role === Role.MOTOBOY && motoboy.userId !== user.id) {
       throw forbidden("Você não pode atualizar outro motoboy");
@@ -67,7 +69,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const data = motoboyUpdateSchema.parse(body);
 
     const updated = await prisma.motoboyProfile.update({
-      where: { id: params.id },
+      where: { id },
       data,
     });
 

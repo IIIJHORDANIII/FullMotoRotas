@@ -22,10 +22,11 @@ async function getEstablishmentOrFail(id: string) {
   return establishment;
 }
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const { user } = await requireAuth(request, [Role.ADMIN, Role.ESTABLISHMENT]);
-    const establishment = await getEstablishmentOrFail(params.id);
+    const establishment = await getEstablishmentOrFail(id);
 
     if (user.role !== Role.ADMIN && establishment.userId !== user.id) {
       throw forbidden("Você não pode acessar este estabelecimento");
@@ -41,10 +42,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const { user } = await requireAuth(request, [Role.ADMIN, Role.ESTABLISHMENT]);
-    const establishment = await getEstablishmentOrFail(params.id);
+    const establishment = await getEstablishmentOrFail(id);
 
     if (user.role !== Role.ADMIN && establishment.userId !== user.id) {
       throw forbidden("Você não pode atualizar este estabelecimento");
@@ -54,7 +56,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const data = establishmentUpdateSchema.parse(body);
 
     const updated = await prisma.establishmentProfile.update({
-      where: { id: params.id },
+      where: { id },
       data,
     });
 

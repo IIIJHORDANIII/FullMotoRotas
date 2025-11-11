@@ -3,10 +3,11 @@ import { prisma } from "@/lib/prisma";
 import { jsonResponse, errorResponse } from "@/lib/http";
 import { AppError, notFound } from "@/lib/errors";
 
-export async function GET(_: NextRequest, { params }: { params: { code: string } }) {
+export async function GET(_: NextRequest, { params }: { params: Promise<{ code: string }> }) {
   try {
+    const { code } = await params;
     const order = await prisma.deliveryOrder.findUnique({
-      where: { deliveryCode: params.code },
+      where: { deliveryCode: code },
       select: {
         id: true,
         status: true,

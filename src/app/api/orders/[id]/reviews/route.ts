@@ -34,13 +34,14 @@ async function ensureOrderParticipation(orderId: string, userId: string, role: R
   throw forbidden("Você não participou desta entrega");
 }
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const { user } = await requireAuth(request, [Role.ADMIN, Role.ESTABLISHMENT, Role.MOTOBOY]);
-    await ensureOrderParticipation(params.id, user.id, user.role);
+    await ensureOrderParticipation(id, user.id, user.role);
 
     const reviews = await prisma.review.findMany({
-      where: { orderId: params.id },
+      where: { orderId: id },
       include: {
         author: { select: { id: true, email: true, role: true } },
         target: { select: { id: true, email: true, role: true } },
@@ -58,13 +59,14 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const { user } = await requireAuth(request, [Role.ESTABLISHMENT, Role.MOTOBOY, Role.ADMIN]);
-    const order = await ensureOrderParticipation(params.id, user.id, user.role);
+    const order = await ensureOrderParticipation(id, user.id, user.role);
 
     const body = await request.json();
-    const data = reviewSchema.partial({ orderId: true }).parse({ ...body, orderId: params.id });
+    const data = reviewSchema.partial({ orderId: true }).parse({ ...body, orderId: id });
 
     if (data.targetId === user.id) {
       throw forbidden("Não é possível avaliar a si mesmo");
@@ -87,7 +89,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     const review = await prisma.review.create({
       data: {
-        orderId: params.id,
+        orderId: id,
         authorId: user.id,
         targetId: data.targetId,
         rating: data.rating,

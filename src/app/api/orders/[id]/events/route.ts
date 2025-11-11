@@ -34,18 +34,19 @@ async function ensureOrderAccess(orderId: string, userId: string, role: Role) {
   throw forbidden("Você não possui permissão para registrar eventos neste pedido");
 }
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const { user } = await requireAuth(request, [Role.ADMIN, Role.ESTABLISHMENT, Role.MOTOBOY]);
 
-    await ensureOrderAccess(params.id, user.id, user.role);
+    await ensureOrderAccess(id, user.id, user.role);
 
     const body = await request.json();
     const data = statusEventSchema.parse(body);
 
     const event = await prisma.deliveryEvent.create({
       data: {
-        orderId: params.id,
+        orderId: id,
         status: data.status,
         message: data.message,
         metadata: data.metadata,
