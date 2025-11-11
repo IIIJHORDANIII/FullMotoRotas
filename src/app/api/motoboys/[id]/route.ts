@@ -5,6 +5,7 @@ import { AppError, notFound, forbidden } from "@/lib/errors";
 import { errorResponse, jsonResponse } from "@/lib/http";
 import { motoboyUpdateSchema } from "@/validation/motoboy";
 import { Role } from "@/generated/prisma/enums";
+import { Prisma } from "@/generated/prisma";
 
 async function getMotoboyOrFail(id: string) {
   const motoboy = await prisma.motoboyProfile.findUnique({
@@ -70,7 +71,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     const updated = await prisma.motoboyProfile.update({
       where: { id },
-      data,
+      data: {
+        ...data,
+        workSchedule: data.workSchedule !== undefined 
+          ? (data.workSchedule as Prisma.InputJsonValue | null)
+          : undefined,
+      },
     });
 
     return jsonResponse(updated);

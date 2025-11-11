@@ -8,6 +8,7 @@ import { registerSchema } from "@/validation/auth";
 import { establishmentSchema } from "@/validation/establishment";
 import { motoboySchema } from "@/validation/motoboy";
 import { Role } from "@/generated/prisma/enums";
+import { Prisma } from "@/generated/prisma";
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,6 +50,7 @@ export async function POST(request: NextRequest) {
             ...motoboyData,
             userId: user.id,
             isAvailable: motoboyData.isAvailable ?? false,
+            workSchedule: motoboyData.workSchedule as Prisma.InputJsonValue | null | undefined,
           },
         });
       }

@@ -7,6 +7,7 @@ import { errorResponse, jsonResponse } from "@/lib/http";
 import { motoboySchema } from "@/validation/motoboy";
 import { Role } from "@/generated/prisma/enums";
 import { hashPassword } from "@/lib/auth";
+import { Prisma } from "@/generated/prisma";
 
 async function buildMotoboyMetrics(motoboyProfileId: string) {
   const [assignments, reviews] = await Promise.all([
@@ -101,6 +102,7 @@ export async function POST(request: NextRequest) {
           ...profile,
           userId: createdUser.id,
           isAvailable: profile.isAvailable ?? false,
+          workSchedule: profile.workSchedule as Prisma.InputJsonValue | null | undefined,
         },
       });
 

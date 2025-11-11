@@ -6,6 +6,7 @@ import { errorResponse, jsonResponse } from "@/lib/http";
 import { assignmentSchema } from "@/validation/order";
 import { AssignmentStatus, DeliveryStatus, Role } from "@/generated/prisma/enums";
 import { z } from "zod";
+import { Prisma } from "@/generated/prisma";
 
 async function ensureOrder(id: string) {
   const order = await prisma.deliveryOrder.findUnique({ where: { id } });
@@ -125,7 +126,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
             orderId: id,
             status: DeliveryStatus.ASSIGNED,
             message: "Motoboy rejeitou a entrega",
-            metadata: data.rejectionReason ? { rejectionReason: data.rejectionReason } : undefined,
+            metadata: data.rejectionReason 
+              ? ({ rejectionReason: data.rejectionReason } as Prisma.InputJsonValue)
+              : undefined,
           },
         });
       }
