@@ -5,7 +5,7 @@ import { AppError, notFound, forbidden } from "@/lib/errors";
 import { errorResponse, jsonResponse } from "@/lib/http";
 import { motoboyUpdateSchema } from "@/validation/motoboy";
 import { Role } from "@/generated/prisma/enums";
-import { Prisma } from "@/generated/prisma";
+import { Prisma } from "@/generated/prisma/client";
 
 async function getMotoboyOrFail(id: string) {
   const motoboy = await prisma.motoboyProfile.findUnique({

@@ -7,7 +7,7 @@ import { errorResponse, jsonResponse } from "@/lib/http";
 import { motoboySchema } from "@/validation/motoboy";
 import { Role } from "@/generated/prisma/enums";
 import { hashPassword } from "@/lib/auth";
-import { Prisma } from "@/generated/prisma";
+import { Prisma } from "@/generated/prisma/client";
 
 async function buildMotoboyMetrics(motoboyProfileId: string) {
   const [assignments, reviews] = await Promise.all([
