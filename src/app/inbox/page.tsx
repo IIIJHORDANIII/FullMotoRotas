@@ -68,13 +68,13 @@ export default function InboxPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const loadAssignments = async (showToast = false) => {
+  const loadAssignments = async (shouldShowToast = false) => {
     try {
-      if (showToast) setRefreshing(true);
+      if (shouldShowToast) setRefreshing(true);
       setError(null);
       const response = await api.get<Order[]>("/api/orders");
       setOrders(response.data || []);
-      if (showToast) {
+      if (shouldShowToast) {
         showToast("Corridas atualizadas", "success");
       }
     } catch (err) {

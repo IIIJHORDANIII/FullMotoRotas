@@ -5,6 +5,7 @@ import { AppError, forbidden, notFound } from "@/lib/errors";
 import { errorResponse, jsonResponse } from "@/lib/http";
 import { deliveryOrderSchema } from "@/validation/order";
 import { Role, DeliveryStatus } from "@/generated/prisma/enums";
+import type { Prisma } from "@/generated/prisma/client";
 import crypto from "crypto";
 
 function generateDeliveryCode() {
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
   try {
     const { user } = await requireAuth(request, [Role.ADMIN, Role.ESTABLISHMENT, Role.MOTOBOY]);
 
-    let where: Parameters<typeof prisma.deliveryOrder.findMany>[0]["where"] = {};
+    let where: Prisma.DeliveryOrderWhereInput = {};
 
     if (user.role === Role.ESTABLISHMENT) {
       where = { establishment: { userId: user.id } };

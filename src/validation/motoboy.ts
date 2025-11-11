@@ -10,7 +10,7 @@ export const motoboySchema = z.object({
   isAvailable: z.boolean().optional(),
   currentLat: z.number().optional(),
   currentLng: z.number().optional(),
-  workSchedule: z.record(z.any()).optional(),
+  workSchedule: z.record(z.string(), z.any()).optional(),
 });
 
 export const motoboyUpdateSchema = motoboySchema.partial();

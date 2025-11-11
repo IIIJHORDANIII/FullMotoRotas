@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import type { AppError } from "@/lib/errors";
 
 export function jsonResponse<T>(data: T, init?: number | ResponseInit) {
+  if (typeof init === "number") {
+    return NextResponse.json({ data }, { status: init });
+  }
   return NextResponse.json({ data }, init);
 }
 

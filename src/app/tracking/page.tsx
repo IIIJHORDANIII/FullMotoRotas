@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
@@ -48,7 +48,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: string 
   },
 };
 
-export default function TrackingPage() {
+function TrackingContent() {
   const searchParams = useSearchParams();
   const codeFromUrl = searchParams.get("code");
   const [code, setCode] = useState(codeFromUrl || "");
@@ -252,5 +252,20 @@ export default function TrackingPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function TrackingPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 py-12 px-4 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin text-6xl mb-4">⟳</div>
+          <p className="text-slate-400">Carregando...</p>
+        </div>
+      </div>
+    }>
+      <TrackingContent />
+    </Suspense>
   );
 }

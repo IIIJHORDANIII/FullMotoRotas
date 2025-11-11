@@ -24,7 +24,7 @@ export const assignmentSchema = z.object({
 export const statusEventSchema = z.object({
   status: z.nativeEnum(DeliveryStatus),
   message: z.string().optional(),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 });
 
 export const reviewSchema = z.object({

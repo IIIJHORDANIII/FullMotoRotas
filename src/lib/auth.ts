@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import jwt, { SignOptions } from "jsonwebtoken";
 import { env } from "@/lib/env";
 
 const SALT_ROUNDS = 10;
@@ -18,8 +18,8 @@ export async function comparePassword(password: string, hash: string): Promise<b
   return bcrypt.compare(password, hash);
 }
 
-export function signJwt(payload: JwtPayload, expiresIn = "12h"): string {
-  return jwt.sign(payload, env.JWT_SECRET, { expiresIn });
+export function signJwt(payload: JwtPayload, expiresIn: string | number = "12h"): string {
+  return jwt.sign(payload, env.JWT_SECRET, { expiresIn } as SignOptions);
 }
 
 export function verifyJwt(token: string): JwtPayload {
