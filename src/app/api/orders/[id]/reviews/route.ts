@@ -101,11 +101,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (target.role === Role.MOTOBOY) {
       // Nota: MotoboyProfile não possui campo 'notes', então não atualizamos
       // As métricas podem ser calculadas dinamicamente quando necessário
-      const stats = await prisma.review.aggregate({
-        where: { targetId: data.targetId },
-        _avg: { rating: true },
-      });
-      // Métricas podem ser consultadas via API quando necessário
     }
 
     if (target.role === Role.ESTABLISHMENT) {
