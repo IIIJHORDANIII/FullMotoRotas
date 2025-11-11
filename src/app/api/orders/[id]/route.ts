@@ -84,13 +84,17 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       }
     }
 
+    const updateData: Parameters<typeof prisma.deliveryOrder.update>[0]["data"] = {
+      ...data,
+    };
+
+    if (data.status === DeliveryStatus.DELIVERED) {
+      updateData.completedAt = new Date();
+    }
+
     const updated = await prisma.deliveryOrder.update({
       where: { id },
-      data: {
-        ...data,
-        completedAt:
-          data.status === DeliveryStatus.DELIVERED ? new Date() : data.completedAt ?? undefined,
-      },
+      data: updateData,
     });
 
     if (data.status) {
