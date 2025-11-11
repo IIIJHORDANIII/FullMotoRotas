@@ -78,7 +78,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const data = deliveryOrderUpdateSchema.parse(body);
 
     if (user.role === Role.MOTOBOY) {
-      const allowedStatuses = [DeliveryStatus.IN_TRANSIT, DeliveryStatus.DELIVERED];
+      const allowedStatuses: DeliveryStatus[] = [DeliveryStatus.IN_TRANSIT, DeliveryStatus.DELIVERED];
       if (data.status && !allowedStatuses.includes(data.status)) {
         throw forbidden("Motoboys só podem atualizar o status para EM ROTA ou ENTREGUE");
       }
