@@ -70,6 +70,40 @@ try {
 const clientExists = fs.existsSync(clientFile);
 const enumsExists = fs.existsSync(enumsFile);
 
+// Verificar se o client.ts gerado não está usando Data Proxy
+if (clientExists) {
+  try {
+    const clientContent = fs.readFileSync(clientFile, "utf8");
+    // Verificar se há referências ao Data Proxy no código gerado
+    if (clientContent.includes("prisma://") || clientContent.includes("prisma+") || clientContent.includes("dataproxy")) {
+      console.warn("⚠ Arquivo client.ts pode estar configurado para usar Data Proxy");
+      console.warn("Regenerando Prisma Client sem Data Proxy...");
+      
+      // Limpar e regenerar novamente
+      fs.rmSync(generatedPrismaPath, { recursive: true, force: true });
+      fs.mkdirSync(generatedPrismaPath, { recursive: true });
+      
+      const env = {
+        ...process.env,
+        PRISMA_GENERATE_DATAPROXY: "false",
+        PRISMA_CLIENT_ENGINE_TYPE: "library",
+      };
+      delete env.PRISMA_CLI_QUERY_ENGINE_TYPE;
+      delete env.PRISMA_CLIENT_DATAPROXY_URL;
+      delete env.DATAPROXY_URL;
+      
+      execSync("npx prisma generate", {
+        cwd: projectRoot,
+        stdio: "inherit",
+        env: env,
+      });
+      console.log("✓ Prisma Client regenerado sem Data Proxy");
+    }
+  } catch (error) {
+    console.warn("⚠ Não foi possível verificar o conteúdo do client.ts:", error.message);
+  }
+}
+
 if (!clientExists) {
   console.warn("⚠ Arquivo client.ts não encontrado após prisma generate");
   console.warn("Isso pode indicar um problema com a configuração do Prisma");
