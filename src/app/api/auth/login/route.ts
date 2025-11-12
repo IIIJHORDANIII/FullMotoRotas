@@ -18,14 +18,84 @@ export async function POST(request: NextRequest) {
     
     console.log("[Login] DATABASE_URL configurada:", process.env.DATABASE_URL.substring(0, 30) + "...");
     
-    await ensureBootstrap();
-    console.log("[Login] Bootstrap concluído");
+    try {
+      await ensureBootstrap();
+      console.log("[Login] Bootstrap concluído");
+    } catch (bootstrapError) {
+      console.error("[Login] ❌ Erro no bootstrap:", bootstrapError);
+      if (bootstrapError instanceof Error) {
+        console.error("[Login] Mensagem do bootstrap:", bootstrapError.message);
+        console.error("[Login] Stack do bootstrap:", bootstrapError.stack);
+      }
+      // Continuar mesmo se o bootstrap falhar (pode ser que o admin já exista)
+    }
 
-    const body = await request.json();
-    const { email, password } = loginSchema.parse(body);
-    console.log(`[Login] Tentando login para: ${email}`);
+    let body;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      console.error("[Login] ❌ Erro ao fazer parse do JSON:", parseError);
+      return errorResponse(
+        new AppError("Corpo da requisição inválido", 400, "INVALID_BODY")
+      );
+    }
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    let email: string;
+    let password: string;
+    try {
+      const parsed = loginSchema.parse(body);
+      email = parsed.email;
+      password = parsed.password;
+      console.log(`[Login] Tentando login para: ${email}`);
+    } catch (validationError) {
+      console.error("[Login] ❌ Erro de validação:", validationError);
+      return errorResponse(
+        new AppError("Email ou senha inválidos", 400, "VALIDATION_ERROR")
+      );
+    }
+
+    let user;
+    try {
+      console.log("[Login] Tentando buscar usuário no banco...");
+      user = await prisma.user.findUnique({ where: { email } });
+      console.log("[Login] Query executada com sucesso");
+    } catch (dbError) {
+      console.error("[Login] ❌ Erro ao consultar banco de dados:", dbError);
+      if (dbError instanceof Error) {
+        console.error("[Login] Mensagem do erro DB:", dbError.message);
+        console.error("[Login] Stack do erro DB:", dbError.stack);
+        
+        // Verificar se é erro de conexão
+        if (dbError.message.includes("connect") || 
+            dbError.message.includes("ECONNREFUSED") ||
+            dbError.message.includes("ENOTFOUND") ||
+            dbError.message.includes("timeout") ||
+            dbError.message.includes("MongoNetworkError") ||
+            dbError.message.includes("MongoServerSelectionError")) {
+          return errorResponse(
+            new AppError(
+              "Erro ao conectar com o banco de dados. Verifique a configuração da DATABASE_URL.",
+              500,
+              "DATABASE_CONNECTION_ERROR"
+            )
+          );
+        }
+        
+        // Verificar se é erro de Data Proxy
+        if (dbError.message.includes("prisma://") || 
+            dbError.message.includes("prisma+") || 
+            dbError.message.includes("must start with the protocol")) {
+          return errorResponse(
+            new AppError(
+              "Erro de configuração do Prisma: Data Proxy detectado. Verifique os logs de build.",
+              500,
+              "PRISMA_DATA_PROXY_ERROR"
+            )
+          );
+        }
+      }
+      throw dbError;
+    }
 
     if (!user) {
       console.log(`[Login] Usuário não encontrado: ${email}`);
