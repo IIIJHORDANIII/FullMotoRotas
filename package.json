@@ -4,11 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "PRISMA_GENERATE_DATAPROXY=false PRISMA_CLIENT_ENGINE_TYPE=library PRISMA_CLI_QUERY_ENGINE_TYPE=library npx prisma generate && next dev",
-    "prebuild": "node scripts/verify-prisma.js",
+    "prebuild": "node scripts/force-prisma-generate.js",
     "build": "next build && node scripts/copy-prisma-binaries.js",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "PRISMA_GENERATE_DATAPROXY=false PRISMA_CLIENT_ENGINE_TYPE=library PRISMA_CLI_QUERY_ENGINE_TYPE=library npx prisma generate",
+    "postinstall": "node scripts/force-prisma-generate.js",
     "ensure-admin": "npx tsx scripts/ensure-admin.ts"
   },
   "dependencies": {
