@@ -22,16 +22,34 @@ if (databaseUrl.startsWith("prisma://") || databaseUrl.startsWith("prisma+")) {
   );
 }
 
+// Verificar variáveis de ambiente que podem forçar Data Proxy
+const problematicEnvVars = [
+  "PRISMA_CLIENT_DATAPROXY_URL",
+  "DATAPROXY_URL",
+  "PRISMA_ENGINES_MIRROR",
+];
+
+problematicEnvVars.forEach((varName) => {
+  if (process.env[varName]) {
+    console.warn(`⚠️ Variável de ambiente ${varName} está definida: ${process.env[varName]}`);
+    console.warn(`   Isso pode forçar o uso do Data Proxy. Removendo...`);
+    delete process.env[varName];
+  }
+});
+
 // Garantir que variáveis de ambiente não forcem o Data Proxy
 // Essas variáveis devem ser definidas ANTES de importar o PrismaClient
 process.env.PRISMA_GENERATE_DATAPROXY = "false";
 process.env.PRISMA_CLIENT_ENGINE_TYPE = "library";
 process.env.PRISMA_CLI_QUERY_ENGINE_TYPE = "library";
 
-// Log da URL para debug (sempre logar em produção também para debug na Vercel)
-console.log("✓ DATABASE_URL configurada:", databaseUrl.substring(0, 30) + "...");
-console.log("✓ Prisma Engine Type:", process.env.PRISMA_CLIENT_ENGINE_TYPE || "library");
-console.log("✓ PRISMA_GENERATE_DATAPROXY:", process.env.PRISMA_GENERATE_DATAPROXY || "não definido");
+// Verificar se há alguma configuração que está forçando Data Proxy
+console.log("🔍 Verificando configurações do Prisma:");
+console.log(`   DATABASE_URL: ${databaseUrl.substring(0, 30)}...`);
+console.log(`   PRISMA_GENERATE_DATAPROXY: ${process.env.PRISMA_GENERATE_DATAPROXY}`);
+console.log(`   PRISMA_CLIENT_ENGINE_TYPE: ${process.env.PRISMA_CLIENT_ENGINE_TYPE}`);
+console.log(`   PRISMA_CLI_QUERY_ENGINE_TYPE: ${process.env.PRISMA_CLI_QUERY_ENGINE_TYPE}`);
+console.log(`   NODE_ENV: ${process.env.NODE_ENV}`);
 
 // Criar Prisma Client com tratamento de erro melhorado
 // IMPORTANTE: Forçar uso de library engine explicitamente
@@ -46,6 +64,9 @@ try {
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
   };
   
+  console.log("🔧 Criando Prisma Client...");
+  console.log(`   Config: ${JSON.stringify(prismaConfig)}`);
+  
   // Criar Prisma Client sem passar datasources explicitamente
   // O Prisma Client vai usar a DATABASE_URL da variável de ambiente automaticamente
   // Isso evita problemas de validação durante o build
@@ -55,6 +76,8 @@ try {
   if (!prismaInstance) {
     throw new Error("Falha ao criar instância do Prisma Client");
   }
+  
+  console.log("✓ Prisma Client criado com sucesso");
   
   // NÃO tentar conectar durante o build - isso pode causar problemas
   // A conexão será feita quando necessário em runtime
@@ -68,20 +91,30 @@ try {
     // Verificar se é erro de Data Proxy
     if (error.message.includes("prisma://") || 
         error.message.includes("prisma+") || 
-        error.message.includes("must start with the protocol")) {
+        error.message.includes("must start with the protocol") ||
+        error.message.includes("Error validating datasource")) {
       console.error("\n⚠️ PROBLEMA DETECTADO: Prisma está tentando usar Data Proxy!");
-      console.error("Isso pode acontecer se:");
+      console.error("Mensagem de erro completa:", error.message);
+      console.error("\nIsso pode acontecer se:");
       console.error("1. O Prisma Client foi gerado incorretamente");
       console.error("2. Há uma configuração que força o uso do Data Proxy");
       console.error("3. O Next.js está usando uma versão cached do Prisma Client");
+      console.error("4. Há uma variável de ambiente forçando Data Proxy");
+      console.error("\nVariáveis de ambiente atuais:");
+      console.error(`   DATABASE_URL: ${process.env.DATABASE_URL?.substring(0, 30)}...`);
+      console.error(`   PRISMA_GENERATE_DATAPROXY: ${process.env.PRISMA_GENERATE_DATAPROXY}`);
+      console.error(`   PRISMA_CLIENT_ENGINE_TYPE: ${process.env.PRISMA_CLIENT_ENGINE_TYPE}`);
+      console.error(`   PRISMA_CLI_QUERY_ENGINE_TYPE: ${process.env.PRISMA_CLI_QUERY_ENGINE_TYPE}`);
       console.error("\nSoluções:");
       console.error("- Verifique os logs de build para confirmar que o script foi executado");
       console.error("- Limpe o cache da Vercel e faça um redeploy");
-      console.error("- Verifique se não há variáveis de ambiente forçando Data Proxy");
+      console.error("- Verifique se não há variáveis de ambiente forçando Data Proxy na Vercel");
+      console.error("- Verifique se a DATABASE_URL está correta (deve ser mongodb+srv://...)");
       
       throw new Error(
-        "Prisma Client está tentando usar Data Proxy. " +
-        "Verifique os logs de build e limpe o cache da Vercel."
+        `Prisma Client está tentando usar Data Proxy. ` +
+        `Erro: ${error.message}. ` +
+        `Verifique os logs de build e limpe o cache da Vercel.`
       );
     }
   }
