@@ -53,83 +53,111 @@ console.log(`   NODE_ENV: ${process.env.NODE_ENV}`);
 
 // Criar Prisma Client com tratamento de erro melhorado
 // IMPORTANTE: Forçar uso de library engine explicitamente
-let prismaInstance: PrismaClient;
+// Usar lazy initialization para evitar erros durante a importação do módulo
+let prismaInstance: PrismaClient | null = null;
+let prismaError: Error | null = null;
 
-try {
-  // Configuração explícita para garantir que não use Data Proxy
-  // IMPORTANTE: Não passar datasources no construtor pode ajudar a evitar validação incorreta
-  const prismaConfig: {
-    log?: ("error" | "warn")[];
-  } = {
-    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
-  };
-  
-  console.log("🔧 Criando Prisma Client...");
-  console.log(`   Config: ${JSON.stringify(prismaConfig)}`);
-  
-  // Criar Prisma Client sem passar datasources explicitamente
-  // O Prisma Client vai usar a DATABASE_URL da variável de ambiente automaticamente
-  // Isso evita problemas de validação durante o build
-  prismaInstance = globalForPrisma.prisma ?? new PrismaClient(prismaConfig);
-  
-  // Verificar se o Prisma Client foi criado corretamente
-  if (!prismaInstance) {
-    throw new Error("Falha ao criar instância do Prisma Client");
+function getPrismaClient(): PrismaClient {
+  // Se já temos uma instância, retornar
+  if (prismaInstance) {
+    return prismaInstance;
   }
-  
-  console.log("✓ Prisma Client criado com sucesso");
-  
-  // NÃO tentar conectar durante o build - isso pode causar problemas
-  // A conexão será feita quando necessário em runtime
-  
-} catch (error) {
-  console.error("❌ Erro ao criar Prisma Client:", error);
-  if (error instanceof Error) {
-    console.error("Mensagem:", error.message);
-    console.error("Stack:", error.stack);
+
+  // Se já tentamos criar e deu erro, lançar o erro
+  if (prismaError) {
+    throw prismaError;
+  }
+
+  // Se já existe no global, usar
+  if (globalForPrisma.prisma) {
+    prismaInstance = globalForPrisma.prisma;
+    return prismaInstance;
+  }
+
+  // Tentar criar nova instância
+  try {
+    console.log("🔧 Criando Prisma Client (lazy initialization)...");
     
-    // Verificar se é erro de Data Proxy
-    if (error.message.includes("prisma://") || 
-        error.message.includes("prisma+") || 
-        error.message.includes("must start with the protocol") ||
-        error.message.includes("Error validating datasource")) {
-      console.error("\n⚠️ PROBLEMA DETECTADO: Prisma está tentando usar Data Proxy!");
-      console.error("Mensagem de erro completa:", error.message);
-      console.error("\nIsso pode acontecer se:");
-      console.error("1. O Prisma Client foi gerado incorretamente");
-      console.error("2. Há uma configuração que força o uso do Data Proxy");
-      console.error("3. O Next.js está usando uma versão cached do Prisma Client");
-      console.error("4. Há uma variável de ambiente forçando Data Proxy");
-      console.error("\nVariáveis de ambiente atuais:");
-      console.error(`   DATABASE_URL: ${process.env.DATABASE_URL?.substring(0, 30)}...`);
-      console.error(`   PRISMA_GENERATE_DATAPROXY: ${process.env.PRISMA_GENERATE_DATAPROXY}`);
-      console.error(`   PRISMA_CLIENT_ENGINE_TYPE: ${process.env.PRISMA_CLIENT_ENGINE_TYPE}`);
-      console.error(`   PRISMA_CLI_QUERY_ENGINE_TYPE: ${process.env.PRISMA_CLI_QUERY_ENGINE_TYPE}`);
-      console.error("\nSoluções:");
-      console.error("- Verifique os logs de build para confirmar que o script foi executado");
-      console.error("- Limpe o cache da Vercel e faça um redeploy");
-      console.error("- Verifique se não há variáveis de ambiente forçando Data Proxy na Vercel");
-      console.error("- Verifique se a DATABASE_URL está correta (deve ser mongodb+srv://...)");
-      
-      throw new Error(
-        `Prisma Client está tentando usar Data Proxy. ` +
-        `Erro: ${error.message}. ` +
-        `Verifique os logs de build e limpe o cache da Vercel.`
-      );
+    // Configuração explícita para garantir que não use Data Proxy
+    const prismaConfig: {
+      log?: ("error" | "warn")[];
+    } = {
+      log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+    };
+    
+    console.log(`   Config: ${JSON.stringify(prismaConfig)}`);
+    
+    // Criar Prisma Client sem passar datasources explicitamente
+    // O Prisma Client vai usar a DATABASE_URL da variável de ambiente automaticamente
+    prismaInstance = new PrismaClient(prismaConfig);
+    
+    // Verificar se o Prisma Client foi criado corretamente
+    if (!prismaInstance) {
+      throw new Error("Falha ao criar instância do Prisma Client");
     }
+    
+    console.log("✓ Prisma Client criado com sucesso");
+    
+    // Armazenar no global para reutilização
+    if (process.env.NODE_ENV !== "production") {
+      globalForPrisma.prisma = prismaInstance;
+    }
+    
+    return prismaInstance;
+  } catch (error) {
+    prismaError = error instanceof Error ? error : new Error(String(error));
+    console.error("❌ Erro ao criar Prisma Client:", prismaError);
+    
+    if (prismaError instanceof Error) {
+      console.error("Mensagem:", prismaError.message);
+      console.error("Stack:", prismaError.stack);
+      
+      // Verificar se é erro de Data Proxy
+      if (prismaError.message.includes("prisma://") || 
+          prismaError.message.includes("prisma+") || 
+          prismaError.message.includes("must start with the protocol") ||
+          prismaError.message.includes("Error validating datasource")) {
+        console.error("\n⚠️ PROBLEMA DETECTADO: Prisma está tentando usar Data Proxy!");
+        console.error("Mensagem de erro completa:", prismaError.message);
+        console.error("\nVariáveis de ambiente atuais:");
+        console.error(`   DATABASE_URL: ${process.env.DATABASE_URL?.substring(0, 30)}...`);
+        console.error(`   PRISMA_GENERATE_DATAPROXY: ${process.env.PRISMA_GENERATE_DATAPROXY}`);
+        console.error(`   PRISMA_CLIENT_ENGINE_TYPE: ${process.env.PRISMA_CLIENT_ENGINE_TYPE}`);
+        console.error(`   PRISMA_CLI_QUERY_ENGINE_TYPE: ${process.env.PRISMA_CLI_QUERY_ENGINE_TYPE}`);
+      }
+    }
+    
+    throw prismaError;
   }
-  throw error;
 }
 
-export const prisma = prismaInstance;
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
+// Criar wrapper que inicializa o client apenas quando necessário
+function createPrismaWrapper(): PrismaClient {
+  if (prismaInstance) {
+    return prismaInstance;
+  }
+  
+  if (globalForPrisma.prisma) {
+    prismaInstance = globalForPrisma.prisma;
+    return prismaInstance;
+  }
+  
+  return getPrismaClient();
 }
 
-// Teste de conexão ao inicializar (apenas em desenvolvimento)
-if (process.env.NODE_ENV === "development") {
-  prisma.$connect().catch((error) => {
-    console.error("Erro ao conectar ao banco de dados:", error);
-  });
-}
+// Exportar wrapper que cria o client quando necessário
+// Isso evita erros durante a importação do módulo
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, prop) {
+    const client = createPrismaWrapper();
+    const value = client[prop as keyof PrismaClient];
+    if (typeof value === "function") {
+      return value.bind(client);
+    }
+    return value;
+  },
+});
+
+// Nota: Não inicializar o Prisma Client durante a importação do módulo
+// Ele será criado quando necessário (lazy initialization)
+// Isso evita erros durante o build e permite melhor tratamento de erros em runtime
