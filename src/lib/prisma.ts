@@ -76,17 +76,23 @@ function getPrismaClient(): PrismaClient {
 
   // Tentar criar nova instância
   try {
+    // Verificar se DATABASE_URL está disponível
+    const dbUrl = process.env.DATABASE_URL;
+    if (!dbUrl) {
+      throw new Error("DATABASE_URL não está definida");
+    }
+    
     console.log("🔧 Criando Prisma Client (lazy initialization)...");
     console.log("🔍 Verificando configurações antes de criar:");
-    console.log(`   DATABASE_URL: ${databaseUrl.substring(0, 50)}...`);
-    console.log(`   DATABASE_URL começa com mongodb: ${databaseUrl.startsWith("mongodb")}`);
-    console.log(`   DATABASE_URL começa com prisma: ${databaseUrl.startsWith("prisma")}`);
+    console.log(`   DATABASE_URL: ${dbUrl.substring(0, 50)}...`);
+    console.log(`   DATABASE_URL começa com mongodb: ${dbUrl.startsWith("mongodb")}`);
+    console.log(`   DATABASE_URL começa com prisma: ${dbUrl.startsWith("prisma")}`);
     console.log(`   PRISMA_GENERATE_DATAPROXY: ${process.env.PRISMA_GENERATE_DATAPROXY}`);
     console.log(`   PRISMA_CLIENT_ENGINE_TYPE: ${process.env.PRISMA_CLIENT_ENGINE_TYPE}`);
     
     // Verificar novamente se a URL não é do Data Proxy
-    if (databaseUrl.startsWith("prisma://") || databaseUrl.startsWith("prisma+")) {
-      const errorMsg = `DATABASE_URL está configurada para usar Prisma Data Proxy: ${databaseUrl.substring(0, 50)}...`;
+    if (dbUrl.startsWith("prisma://") || dbUrl.startsWith("prisma+")) {
+      const errorMsg = `DATABASE_URL está configurada para usar Prisma Data Proxy: ${dbUrl.substring(0, 50)}...`;
       console.error(`❌ ${errorMsg}`);
       throw new Error(errorMsg);
     }
@@ -148,15 +154,17 @@ function getPrismaClient(): PrismaClient {
         console.error(`   PRISMA_CLI_QUERY_ENGINE_TYPE: ${process.env.PRISMA_CLI_QUERY_ENGINE_TYPE}`);
         console.error(`   NODE_ENV: ${process.env.NODE_ENV}`);
         console.error("\n🔍 Verificações:");
-        console.error(`   DATABASE_URL é MongoDB: ${databaseUrl.startsWith("mongodb")}`);
-        console.error(`   DATABASE_URL é Data Proxy: ${databaseUrl.startsWith("prisma")}`);
+        const dbUrlCheck = process.env.DATABASE_URL || "";
+        console.error(`   DATABASE_URL é MongoDB: ${dbUrlCheck.startsWith("mongodb")}`);
+        console.error(`   DATABASE_URL é Data Proxy: ${dbUrlCheck.startsWith("prisma")}`);
         console.error("=".repeat(80));
         
         // Criar erro mais descritivo
+        const dbUrl = process.env.DATABASE_URL || "não definida";
         const descriptiveError = new Error(
           `Prisma Client detectou configuração de Data Proxy. ` +
           `Erro original: ${prismaError.message}. ` +
-          `DATABASE_URL: ${databaseUrl.substring(0, 30)}... ` +
+          `DATABASE_URL: ${dbUrl.substring(0, 30)}... ` +
           `Verifique se não há variáveis de ambiente forçando Data Proxy na Vercel.`
         );
         prismaError = descriptiveError;
