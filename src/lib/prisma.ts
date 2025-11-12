@@ -23,12 +23,15 @@ if (databaseUrl.startsWith("prisma://") || databaseUrl.startsWith("prisma+")) {
 }
 
 // Garantir que variáveis de ambiente não forcem o Data Proxy
+// Essas variáveis devem ser definidas ANTES de importar o PrismaClient
 process.env.PRISMA_GENERATE_DATAPROXY = "false";
 process.env.PRISMA_CLIENT_ENGINE_TYPE = "library";
+process.env.PRISMA_CLI_QUERY_ENGINE_TYPE = "library";
 
 // Log da URL para debug (apenas em desenvolvimento)
 if (process.env.NODE_ENV === "development") {
   console.log("✓ DATABASE_URL configurada:", databaseUrl.substring(0, 30) + "...");
+  console.log("✓ Prisma Engine Type:", process.env.PRISMA_CLIENT_ENGINE_TYPE || "library");
 }
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({
