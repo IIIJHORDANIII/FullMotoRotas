@@ -39,22 +39,16 @@ let prismaInstance: PrismaClient;
 
 try {
   // Configuração explícita para garantir que não use Data Proxy
+  // IMPORTANTE: Não passar datasources no construtor pode ajudar a evitar validação incorreta
   const prismaConfig: {
-    log: ("error" | "warn")[];
-    datasources: {
-      db: {
-        url: string;
-      };
-    };
+    log?: ("error" | "warn")[];
   } = {
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
-    datasources: {
-      db: {
-        url: databaseUrl,
-      },
-    },
   };
   
+  // Criar Prisma Client sem passar datasources explicitamente
+  // O Prisma Client vai usar a DATABASE_URL da variável de ambiente automaticamente
+  // Isso evita problemas de validação durante o build
   prismaInstance = globalForPrisma.prisma ?? new PrismaClient(prismaConfig);
   
   // Verificar se o Prisma Client foi criado corretamente
@@ -62,32 +56,8 @@ try {
     throw new Error("Falha ao criar instância do Prisma Client");
   }
   
-  // Tentar conectar para verificar se há erro de Data Proxy
-  // Isso vai falhar imediatamente se o Prisma Client foi gerado com Data Proxy
-  prismaInstance.$connect().catch((connectError: unknown) => {
-    const errorMessage = (connectError instanceof Error ? connectError.message : String(connectError));
-    
-    // Verificar se é erro de Data Proxy
-    if (errorMessage.includes("prisma://") || 
-        errorMessage.includes("prisma+") || 
-        errorMessage.includes("must start with the protocol")) {
-      console.error("\n❌ ERRO CRÍTICO: Prisma Client foi gerado com Data Proxy habilitado!");
-      console.error("Mensagem de erro:", errorMessage);
-      console.error("\nSoluções:");
-      console.error("1. Verifique se o script force-prisma-generate.js foi executado durante o build");
-      console.error("2. Verifique se o schema.prisma tem 'engineType = \"library\"' configurado");
-      console.error("3. Verifique se as variáveis de ambiente PRISMA_* estão configuradas corretamente");
-      console.error("4. Execute 'npm run postinstall' localmente para regenerar o Prisma Client");
-      
-      throw new Error(
-        "Prisma Client foi gerado com Data Proxy habilitado. " +
-        "Verifique os logs de build e execute 'npm run postinstall' para regenerar."
-      );
-    }
-    
-    // Se não for erro de Data Proxy, apenas logar e continuar
-    console.warn("⚠ Aviso ao conectar (não crítico):", errorMessage);
-  });
+  // NÃO tentar conectar durante o build - isso pode causar problemas
+  // A conexão será feita quando necessário em runtime
   
 } catch (error) {
   console.error("❌ Erro ao criar Prisma Client:", error);
@@ -99,9 +69,19 @@ try {
     if (error.message.includes("prisma://") || 
         error.message.includes("prisma+") || 
         error.message.includes("must start with the protocol")) {
+      console.error("\n⚠️ PROBLEMA DETECTADO: Prisma está tentando usar Data Proxy!");
+      console.error("Isso pode acontecer se:");
+      console.error("1. O Prisma Client foi gerado incorretamente");
+      console.error("2. Há uma configuração que força o uso do Data Proxy");
+      console.error("3. O Next.js está usando uma versão cached do Prisma Client");
+      console.error("\nSoluções:");
+      console.error("- Verifique os logs de build para confirmar que o script foi executado");
+      console.error("- Limpe o cache da Vercel e faça um redeploy");
+      console.error("- Verifique se não há variáveis de ambiente forçando Data Proxy");
+      
       throw new Error(
-        "Prisma Client foi gerado com Data Proxy habilitado. " +
-        "Execute 'npm run postinstall' para regenerar o Prisma Client sem Data Proxy."
+        "Prisma Client está tentando usar Data Proxy. " +
+        "Verifique os logs de build e limpe o cache da Vercel."
       );
     }
   }
