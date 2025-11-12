@@ -18,7 +18,7 @@ export async function GET() {
     database: {
       connected: boolean;
       error?: string;
-      testQuery?: any;
+      testQuery?: { userCount: number };
     };
   } = {
     timestamp: new Date().toISOString(),
