@@ -10,11 +10,25 @@ const { execSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
+// Logs muito visíveis para debug na Vercel
+console.log("\n");
+console.log("=".repeat(80));
+console.log("🚀 INICIANDO: force-prisma-generate.js");
+console.log("=".repeat(80));
+console.log(`📁 Diretório atual: ${process.cwd()}`);
+console.log(`📁 Script executado de: ${__dirname}`);
+console.log(`⏰ Timestamp: ${new Date().toISOString()}`);
+console.log("=".repeat(80));
+console.log("\n");
+
 const projectRoot = path.join(__dirname, "..");
 const generatedPrismaPath = path.join(projectRoot, "src", "generated", "prisma");
 const dotPrismaPath = path.join(projectRoot, "node_modules", ".prisma");
 
 console.log("🔧 Forçando geração do Prisma Client sem Data Proxy...");
+console.log(`📂 Project root: ${projectRoot}`);
+console.log(`📂 Generated path: ${generatedPrismaPath}`);
+console.log(`📂 Dot prisma path: ${dotPrismaPath}`);
 
 // Limpar diretórios gerados
 const dirsToClean = [generatedPrismaPath, dotPrismaPath];
@@ -68,12 +82,33 @@ console.log(`  PRISMA_GENERATE_DATAPROXY=${env.PRISMA_GENERATE_DATAPROXY}`);
 console.log(`  PRISMA_CLIENT_ENGINE_TYPE=${env.PRISMA_CLIENT_ENGINE_TYPE}`);
 console.log(`  PRISMA_CLI_QUERY_ENGINE_TYPE=${env.PRISMA_CLI_QUERY_ENGINE_TYPE}`);
 
+// Verificar se o schema.prisma existe
+const schemaPath = path.join(projectRoot, "prisma", "schema.prisma");
+if (!fs.existsSync(schemaPath)) {
+  console.error(`❌ ERRO: schema.prisma não encontrado em: ${schemaPath}`);
+  process.exit(1);
+}
+console.log(`✓ Schema.prisma encontrado: ${schemaPath}`);
+
+// Ler o schema para verificar se engineType está configurado
+const schemaContent = fs.readFileSync(schemaPath, "utf8");
+if (!schemaContent.includes("engineType") || !schemaContent.includes("library")) {
+  console.error("❌ ERRO: schema.prisma não tem engineType = 'library' configurado!");
+  console.error("Adicione 'engineType = \"library\"' no generator client do schema.prisma");
+  process.exit(1);
+}
+console.log("✓ Schema.prisma tem engineType = 'library' configurado");
+
 // Executar prisma generate
 // IMPORTANTE: O schema.prisma já tem engineType = "library" configurado
 // Isso deve ser suficiente para garantir que não use Data Proxy
 try {
   console.log("\n📦 Executando: npx prisma generate");
   console.log("📝 Schema.prisma configurado com: engineType = 'library'");
+  console.log("🔧 Variáveis de ambiente:");
+  console.log(`   PRISMA_GENERATE_DATAPROXY=${env.PRISMA_GENERATE_DATAPROXY}`);
+  console.log(`   PRISMA_CLIENT_ENGINE_TYPE=${env.PRISMA_CLIENT_ENGINE_TYPE}`);
+  console.log(`   PRISMA_CLI_QUERY_ENGINE_TYPE=${env.PRISMA_CLI_QUERY_ENGINE_TYPE}`);
   
   execSync("npx prisma generate", {
     cwd: projectRoot,
@@ -170,5 +205,9 @@ try {
   process.exit(1);
 }
 
-console.log("\n✅ Concluído!");
+console.log("\n");
+console.log("=".repeat(80));
+console.log("✅ CONCLUÍDO: force-prisma-generate.js");
+console.log("=".repeat(80));
+console.log("\n");
 
