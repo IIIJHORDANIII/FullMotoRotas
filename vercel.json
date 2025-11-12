@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npx prisma generate && next build && node scripts/copy-prisma-binaries.js",
+  "buildCommand": "npm run build",
   "installCommand": "npm install",
   "framework": "nextjs"
 }

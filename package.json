@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "npx prisma generate && next dev",
-    "build": "npx prisma generate && next build && node scripts/copy-prisma-binaries.js",
+    "prebuild": "npx prisma generate && node scripts/verify-prisma.js",
+    "build": "next build && node scripts/copy-prisma-binaries.js",
     "start": "next start",
     "lint": "next lint",
     "postinstall": "npx prisma generate",
