@@ -43,6 +43,13 @@ const env = {
 delete env.PRISMA_CLIENT_DATAPROXY_URL;
 delete env.DATAPROXY_URL;
 delete env.PRISMA_ENGINES_MIRROR;
+delete env.PRISMA_CLI_QUERY_ENGINE_TYPE; // Remover antes de definir novamente
+delete env.PRISMA_CLIENT_ENGINE_TYPE; // Remover antes de definir novamente
+
+// Garantir que as variáveis estão definidas corretamente
+env.PRISMA_GENERATE_DATAPROXY = "false";
+env.PRISMA_CLIENT_ENGINE_TYPE = "library";
+env.PRISMA_CLI_QUERY_ENGINE_TYPE = "library";
 
 // Verificar DATABASE_URL
 if (env.DATABASE_URL) {
@@ -62,28 +69,52 @@ console.log(`  PRISMA_CLIENT_ENGINE_TYPE=${env.PRISMA_CLIENT_ENGINE_TYPE}`);
 console.log(`  PRISMA_CLI_QUERY_ENGINE_TYPE=${env.PRISMA_CLI_QUERY_ENGINE_TYPE}`);
 
 // Executar prisma generate
+// IMPORTANTE: O schema.prisma já tem engineType = "library" configurado
+// Isso deve ser suficiente para garantir que não use Data Proxy
 try {
   console.log("\n📦 Executando: npx prisma generate");
+  console.log("📝 Schema.prisma configurado com: engineType = 'library'");
+  
   execSync("npx prisma generate", {
     cwd: projectRoot,
     stdio: "inherit",
     env: env,
   });
-  console.log("\n✓ Prisma Client gerado com sucesso (sem Data Proxy)");
+  console.log("\n✓ Prisma Client gerado com sucesso");
 } catch (error) {
   console.error("\n❌ Erro ao gerar Prisma Client:", error.message);
+  if (error instanceof Error && error.stack) {
+    console.error("Stack:", error.stack);
+  }
   process.exit(1);
 }
 
 // Verificar se o client foi gerado corretamente
 const clientIndexPath = path.join(generatedPrismaPath, "index.js");
+const clientRuntimePath = path.join(generatedPrismaPath, "runtime", "library.js");
+
 if (fs.existsSync(clientIndexPath)) {
   const clientContent = fs.readFileSync(clientIndexPath, "utf8");
   
-  // Verificar se há referências ao Data Proxy
-  if (clientContent.includes("prisma://") || clientContent.includes("prisma+") || clientContent.includes("dataproxy")) {
+  // Verificar se há referências ao Data Proxy no código gerado
+  const hasDataProxy = clientContent.includes("prisma://") || 
+                       clientContent.includes("prisma+") || 
+                       clientContent.includes("dataproxy") ||
+                       clientContent.includes("DataProxy");
+  
+  if (hasDataProxy) {
     console.error("\n❌ ERRO: Prisma Client foi gerado com Data Proxy habilitado!");
+    console.error("Conteúdo suspeito encontrado no index.js");
     console.error("Isso não deveria acontecer. Verifique as configurações.");
+    
+    // Mostrar trecho do código onde foi detectado
+    const lines = clientContent.split('\n');
+    lines.forEach((line, index) => {
+      if (line.includes("prisma://") || line.includes("prisma+") || line.includes("dataproxy")) {
+        console.error(`Linha ${index + 1}: ${line.substring(0, 100)}`);
+      }
+    });
+    
     process.exit(1);
   }
   
@@ -92,9 +123,18 @@ if (fs.existsSync(clientIndexPath)) {
     console.warn("\n⚠ Aviso: Engine type pode não estar configurado como 'library'");
   }
   
+  // Verificar se o runtime library existe (indica que não está usando Data Proxy)
+  if (fs.existsSync(clientRuntimePath)) {
+    console.log("✓ Runtime library encontrado (indica uso de library engine, não Data Proxy)");
+  } else {
+    console.warn("⚠ Runtime library não encontrado - pode indicar uso de Data Proxy");
+  }
+  
   console.log("✓ Verificação: Prisma Client não está usando Data Proxy");
 } else {
-  console.warn("\n⚠ Arquivo index.js não encontrado após geração");
+  console.error("\n❌ Arquivo index.js não encontrado após geração!");
+  console.error("O Prisma Client não foi gerado corretamente.");
+  process.exit(1);
 }
 
 // Criar/atualizar arquivo enums.ts
