@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import AppLayout from "@/components/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useToast } from "@/components/Toast";
@@ -61,14 +61,7 @@ export default function InboxPage() {
   const [processing, setProcessing] = useState<Set<string>>(new Set());
   const { showToast } = useToast();
 
-  useEffect(() => {
-    loadAssignments();
-    // Auto-refresh a cada 30 segundos
-    const interval = setInterval(loadAssignments, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const loadAssignments = async (shouldShowToast = false) => {
+  const loadAssignments = useCallback(async (shouldShowToast = false) => {
     try {
       if (shouldShowToast) setRefreshing(true);
       setError(null);
@@ -86,7 +79,16 @@ export default function InboxPage() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [showToast]);
+
+  useEffect(() => {
+    loadAssignments();
+    // Auto-refresh a cada 30 segundos
+    const interval = setInterval(() => {
+      loadAssignments();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [loadAssignments]);
 
   const handleAccept = async (orderId: string) => {
     setProcessing((prev) => new Set(prev).add(orderId));
