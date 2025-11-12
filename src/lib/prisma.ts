@@ -39,7 +39,14 @@ let prismaInstance: PrismaClient;
 
 try {
   // Configuração explícita para garantir que não use Data Proxy
-  const prismaConfig: any = {
+  const prismaConfig: {
+    log: ("error" | "warn")[];
+    datasources: {
+      db: {
+        url: string;
+      };
+    };
+  } = {
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
     datasources: {
       db: {
@@ -47,20 +54,6 @@ try {
       },
     },
   };
-  
-  // Forçar engineType library se disponível na configuração
-  // Isso garante que mesmo se o Prisma Client foi gerado incorretamente, forçamos o uso da biblioteca
-  if (typeof (PrismaClient as any).prototype !== 'undefined') {
-    // Tentar definir engineType diretamente se possível
-    try {
-      // @ts-ignore - propriedade interna do Prisma
-      prismaConfig.__internal = {
-        engineType: 'library',
-      };
-    } catch (e) {
-      // Ignorar se não for possível
-    }
-  }
   
   prismaInstance = globalForPrisma.prisma ?? new PrismaClient(prismaConfig);
   
@@ -71,8 +64,8 @@ try {
   
   // Tentar conectar para verificar se há erro de Data Proxy
   // Isso vai falhar imediatamente se o Prisma Client foi gerado com Data Proxy
-  prismaInstance.$connect().catch((connectError: any) => {
-    const errorMessage = connectError?.message || String(connectError);
+  prismaInstance.$connect().catch((connectError: unknown) => {
+    const errorMessage = (connectError instanceof Error ? connectError.message : String(connectError));
     
     // Verificar se é erro de Data Proxy
     if (errorMessage.includes("prisma://") || 
