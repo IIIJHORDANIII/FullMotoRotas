@@ -8,10 +8,22 @@ import { errorResponse, jsonResponse } from "@/lib/http";
 
 export async function POST(request: NextRequest) {
   try {
+    console.log("[Login] Iniciando processo de login...");
+    
+    // Verificar se DATABASE_URL está configurada
+    if (!process.env.DATABASE_URL) {
+      console.error("[Login] ❌ DATABASE_URL não está configurada!");
+      throw new Error("DATABASE_URL não está configurada");
+    }
+    
+    console.log("[Login] DATABASE_URL configurada:", process.env.DATABASE_URL.substring(0, 30) + "...");
+    
     await ensureBootstrap();
+    console.log("[Login] Bootstrap concluído");
 
     const body = await request.json();
     const { email, password } = loginSchema.parse(body);
+    console.log(`[Login] Tentando login para: ${email}`);
 
     const user = await prisma.user.findUnique({ where: { email } });
 
@@ -49,11 +61,37 @@ export async function POST(request: NextRequest) {
       return errorResponse(error);
     }
     
-    // Log detalhado do erro para debug
-    console.error("Erro no login:", error);
+    // Log detalhado do erro para debug (sempre logar para debug na Vercel)
+    console.error("[Login] ❌ Erro no login:", error);
     if (error instanceof Error) {
-      console.error("Mensagem:", error.message);
-      console.error("Stack:", error.stack);
+      console.error("[Login] Mensagem:", error.message);
+      console.error("[Login] Stack:", error.stack);
+      
+      // Verificar se é erro de Data Proxy
+      if (error.message.includes("prisma://") || error.message.includes("prisma+") || error.message.includes("must start with the protocol")) {
+        console.error("[Login] ⚠️ ERRO DE DATA PROXY DETECTADO!");
+        console.error("[Login] O Prisma Client foi gerado com Data Proxy habilitado.");
+        console.error("[Login] Verifique se o script force-prisma-generate.js foi executado durante o build.");
+        return errorResponse(
+          new AppError(
+            "Erro de configuração do Prisma: Data Proxy detectado. Verifique os logs de build.",
+            500,
+            "PRISMA_DATA_PROXY_ERROR"
+          )
+        );
+      }
+      
+      // Verificar se é erro de conexão
+      if (error.message.includes("DATABASE_URL") || error.message.includes("connection")) {
+        console.error("[Login] ⚠️ ERRO DE CONEXÃO COM BANCO DE DADOS!");
+        return errorResponse(
+          new AppError(
+            "Erro ao conectar com o banco de dados. Verifique a configuração da DATABASE_URL.",
+            500,
+            "DATABASE_CONNECTION_ERROR"
+          )
+        );
+      }
     }
     
     return errorResponse(

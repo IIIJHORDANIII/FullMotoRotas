@@ -10,6 +10,25 @@ async function createDefaultAdmin() {
     const { DEFAULT_ADMIN_EMAIL, DEFAULT_ADMIN_PASSWORD } = env;
 
     console.log(`[Bootstrap] Verificando usuário admin: ${DEFAULT_ADMIN_EMAIL}`);
+    
+    // Verificar conexão com o banco antes de tentar criar usuário
+    try {
+      await prisma.$connect();
+      console.log("[Bootstrap] ✓ Conectado ao banco de dados");
+    } catch (connectError) {
+      console.error("[Bootstrap] ❌ Erro ao conectar ao banco:", connectError);
+      if (connectError instanceof Error) {
+        console.error("[Bootstrap] Mensagem:", connectError.message);
+        // Verificar se é erro de Data Proxy
+        if (connectError.message.includes("prisma://") || connectError.message.includes("prisma+")) {
+          throw new Error(
+            "Prisma Client está tentando usar Data Proxy. " +
+            "Verifique se o Prisma Client foi gerado corretamente sem Data Proxy."
+          );
+        }
+      }
+      throw connectError;
+    }
 
     const existing = await prisma.user.findUnique({ where: { email: DEFAULT_ADMIN_EMAIL } });
 
