@@ -87,7 +87,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     const updateData: Prisma.DeliveryOrderUpdateInput = {
       ...data,
-    };
+    } as Prisma.DeliveryOrderUpdateInput;
 
     if (data.status === DeliveryStatus.DELIVERED) {
       updateData.completedAt = new Date();
