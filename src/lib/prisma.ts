@@ -77,6 +77,19 @@ function getPrismaClient(): PrismaClient {
   // Tentar criar nova instância
   try {
     console.log("🔧 Criando Prisma Client (lazy initialization)...");
+    console.log("🔍 Verificando configurações antes de criar:");
+    console.log(`   DATABASE_URL: ${databaseUrl.substring(0, 50)}...`);
+    console.log(`   DATABASE_URL começa com mongodb: ${databaseUrl.startsWith("mongodb")}`);
+    console.log(`   DATABASE_URL começa com prisma: ${databaseUrl.startsWith("prisma")}`);
+    console.log(`   PRISMA_GENERATE_DATAPROXY: ${process.env.PRISMA_GENERATE_DATAPROXY}`);
+    console.log(`   PRISMA_CLIENT_ENGINE_TYPE: ${process.env.PRISMA_CLIENT_ENGINE_TYPE}`);
+    
+    // Verificar novamente se a URL não é do Data Proxy
+    if (databaseUrl.startsWith("prisma://") || databaseUrl.startsWith("prisma+")) {
+      const errorMsg = `DATABASE_URL está configurada para usar Prisma Data Proxy: ${databaseUrl.substring(0, 50)}...`;
+      console.error(`❌ ${errorMsg}`);
+      throw new Error(errorMsg);
+    }
     
     // Configuração explícita para garantir que não use Data Proxy
     const prismaConfig: {
@@ -89,6 +102,7 @@ function getPrismaClient(): PrismaClient {
     
     // Criar Prisma Client sem passar datasources explicitamente
     // O Prisma Client vai usar a DATABASE_URL da variável de ambiente automaticamente
+    console.log("📦 Instanciando PrismaClient...");
     prismaInstance = new PrismaClient(prismaConfig);
     
     // Verificar se o Prisma Client foi criado corretamente
@@ -109,21 +123,43 @@ function getPrismaClient(): PrismaClient {
     console.error("❌ Erro ao criar Prisma Client:", prismaError);
     
     if (prismaError instanceof Error) {
-      console.error("Mensagem:", prismaError.message);
-      console.error("Stack:", prismaError.stack);
+      console.error("Mensagem completa:", prismaError.message);
+      console.error("Stack trace:", prismaError.stack);
       
-      // Verificar se é erro de Data Proxy
-      if (prismaError.message.includes("prisma://") || 
-          prismaError.message.includes("prisma+") || 
-          prismaError.message.includes("must start with the protocol") ||
-          prismaError.message.includes("Error validating datasource")) {
-        console.error("\n⚠️ PROBLEMA DETECTADO: Prisma está tentando usar Data Proxy!");
+      // Verificar se é erro de Data Proxy - verificação mais abrangente
+      const errorMessageLower = prismaError.message.toLowerCase();
+      const isDataProxyError = 
+        errorMessageLower.includes("prisma://") || 
+        errorMessageLower.includes("prisma+") || 
+        errorMessageLower.includes("must start with the protocol") ||
+        errorMessageLower.includes("error validating datasource") ||
+        errorMessageLower.includes("dataproxy") ||
+        errorMessageLower.includes("data proxy");
+      
+      if (isDataProxyError) {
+        console.error("\n" + "=".repeat(80));
+        console.error("⚠️ PROBLEMA DETECTADO: Prisma está tentando usar Data Proxy!");
+        console.error("=".repeat(80));
         console.error("Mensagem de erro completa:", prismaError.message);
-        console.error("\nVariáveis de ambiente atuais:");
-        console.error(`   DATABASE_URL: ${process.env.DATABASE_URL?.substring(0, 30)}...`);
+        console.error("\n📋 Variáveis de ambiente atuais:");
+        console.error(`   DATABASE_URL: ${process.env.DATABASE_URL?.substring(0, 50)}...`);
         console.error(`   PRISMA_GENERATE_DATAPROXY: ${process.env.PRISMA_GENERATE_DATAPROXY}`);
         console.error(`   PRISMA_CLIENT_ENGINE_TYPE: ${process.env.PRISMA_CLIENT_ENGINE_TYPE}`);
         console.error(`   PRISMA_CLI_QUERY_ENGINE_TYPE: ${process.env.PRISMA_CLI_QUERY_ENGINE_TYPE}`);
+        console.error(`   NODE_ENV: ${process.env.NODE_ENV}`);
+        console.error("\n🔍 Verificações:");
+        console.error(`   DATABASE_URL é MongoDB: ${databaseUrl.startsWith("mongodb")}`);
+        console.error(`   DATABASE_URL é Data Proxy: ${databaseUrl.startsWith("prisma")}`);
+        console.error("=".repeat(80));
+        
+        // Criar erro mais descritivo
+        const descriptiveError = new Error(
+          `Prisma Client detectou configuração de Data Proxy. ` +
+          `Erro original: ${prismaError.message}. ` +
+          `DATABASE_URL: ${databaseUrl.substring(0, 30)}... ` +
+          `Verifique se não há variáveis de ambiente forçando Data Proxy na Vercel.`
+        );
+        prismaError = descriptiveError;
       }
     }
     
