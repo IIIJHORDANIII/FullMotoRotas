@@ -9,11 +9,14 @@ import { errorResponse, jsonResponse } from "@/lib/http";
 export async function POST(request: NextRequest) {
   try {
     console.log("[Login] Iniciando processo de login...");
+    console.log("[Login] Prisma Client disponível:", !!prisma);
     
     // Verificar se DATABASE_URL está configurada
     if (!process.env.DATABASE_URL) {
       console.error("[Login] ❌ DATABASE_URL não está configurada!");
-      throw new Error("DATABASE_URL não está configurada");
+      return errorResponse(
+        new AppError("DATABASE_URL não está configurada", 500, "DATABASE_URL_MISSING")
+      );
     }
     
     console.log("[Login] DATABASE_URL configurada:", process.env.DATABASE_URL.substring(0, 30) + "...");
