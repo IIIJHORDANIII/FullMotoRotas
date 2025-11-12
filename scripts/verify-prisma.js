@@ -17,21 +17,50 @@ const schemaPath = path.join(projectRoot, "prisma", "schema.prisma");
 
 console.log("Garantindo que o Prisma Client seja gerado...");
 
+// Limpar o diretório gerado para garantir que não há arquivos antigos com Data Proxy
+if (fs.existsSync(generatedPrismaPath)) {
+  console.log("Limpando diretório gerado anteriormente para evitar conflitos...");
+  try {
+    fs.rmSync(generatedPrismaPath, { recursive: true, force: true });
+  } catch (error) {
+    console.warn("⚠ Não foi possível limpar o diretório:", error.message);
+  }
+}
+
 // Garantir que o diretório existe
 if (!fs.existsSync(generatedPrismaPath)) {
   console.log("Criando diretório:", generatedPrismaPath);
   fs.mkdirSync(generatedPrismaPath, { recursive: true });
 }
 
-// Executar Prisma generate explicitamente
-console.log("Executando: npx prisma generate");
+// Executar Prisma generate explicitamente SEM Data Proxy
+console.log("Executando: npx prisma generate (sem Data Proxy)");
 try {
+  // Garantir que o Data Proxy está desabilitado e limpar variáveis relacionadas
+  const env = {
+    ...process.env,
+    PRISMA_GENERATE_DATAPROXY: "false",
+    PRISMA_CLIENT_ENGINE_TYPE: "library",
+  };
+  
+  // Remover qualquer variável que possa forçar o Data Proxy
+  delete env.PRISMA_CLI_QUERY_ENGINE_TYPE;
+  delete env.PRISMA_CLIENT_DATAPROXY_URL;
+  delete env.DATAPROXY_URL;
+  
+  // Garantir que DATABASE_URL está definida e não é do Data Proxy
+  if (env.DATABASE_URL && (env.DATABASE_URL.startsWith("prisma://") || env.DATABASE_URL.startsWith("prisma+"))) {
+    console.error("❌ DATABASE_URL está configurada para usar Prisma Data Proxy!");
+    console.error("Configure DATABASE_URL com uma string de conexão MongoDB direta (ex: mongodb+srv://...)");
+    process.exit(1);
+  }
+  
   execSync("npx prisma generate", {
     cwd: projectRoot,
     stdio: "inherit",
-    env: { ...process.env, PRISMA_GENERATE_DATAPROXY: "false" },
+    env: env,
   });
-  console.log("✓ Prisma generate executado com sucesso");
+  console.log("✓ Prisma generate executado com sucesso (sem Data Proxy)");
 } catch (error) {
   console.error("⚠ Erro ao executar prisma generate:", error.message);
   // Continuar mesmo se houver erro, vamos criar os arquivos manualmente

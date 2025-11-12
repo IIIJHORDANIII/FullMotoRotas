@@ -3,12 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "npx prisma generate && next dev",
+    "dev": "PRISMA_GENERATE_DATAPROXY=false npx prisma generate && next dev",
     "prebuild": "node scripts/verify-prisma.js",
     "build": "next build && node scripts/copy-prisma-binaries.js",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "npx prisma generate",
+    "postinstall": "PRISMA_GENERATE_DATAPROXY=false npx prisma generate",
     "ensure-admin": "npx tsx scripts/ensure-admin.ts"
   },
   "dependencies": {
