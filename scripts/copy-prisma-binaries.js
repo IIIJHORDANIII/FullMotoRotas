@@ -31,6 +31,12 @@ function copyRecursiveSync(src, dest) {
       fs.mkdirSync(path.dirname(dest), { recursive: true });
     }
     fs.copyFileSync(src, dest);
+    // Tornar o arquivo executável se necessário
+    try {
+      fs.chmodSync(dest, 0o755);
+    } catch (e) {
+      // Ignorar erros de permissão
+    }
   }
   return true;
 }
@@ -39,17 +45,25 @@ function copyRecursiveSync(src, dest) {
 function findFiles(dir, pattern, fileList = []) {
   if (!fs.existsSync(dir)) return fileList;
 
-  const files = fs.readdirSync(dir);
-  files.forEach((file) => {
-    const filePath = path.join(dir, file);
-    const stat = fs.statSync(filePath);
+  try {
+    const files = fs.readdirSync(dir);
+    files.forEach((file) => {
+      const filePath = path.join(dir, file);
+      try {
+        const stat = fs.statSync(filePath);
 
-    if (stat.isDirectory()) {
-      findFiles(filePath, pattern, fileList);
-    } else if (pattern.test(file)) {
-      fileList.push(filePath);
-    }
-  });
+        if (stat.isDirectory()) {
+          findFiles(filePath, pattern, fileList);
+        } else if (pattern.test(file)) {
+          fileList.push(filePath);
+        }
+      } catch (e) {
+        // Ignorar erros de acesso
+      }
+    });
+  } catch (e) {
+    // Ignorar erros de acesso ao diretório
+  }
 
   return fileList;
 }
@@ -58,10 +72,11 @@ function findFiles(dir, pattern, fileList = []) {
 function copyPrismaBinaries() {
   console.log("Copiando binários do Prisma Query Engine...");
 
-  const buildPath = path.join(__dirname, "..", ".next", "server", "chunks");
-  const generatedPrismaPath = path.join(__dirname, "..", "src", "generated", "prisma");
-  const prismaClientPath = path.join(__dirname, "..", "node_modules", "@prisma", "client");
-  const dotPrismaPath = path.join(__dirname, "..", "node_modules", ".prisma", "client");
+  const projectRoot = path.join(__dirname, "..");
+  const buildPath = path.join(projectRoot, ".next", "server", "chunks");
+  const generatedPrismaPath = path.join(projectRoot, "src", "generated", "prisma");
+  const prismaClientPath = path.join(projectRoot, "node_modules", "@prisma", "client");
+  const dotPrismaPath = path.join(projectRoot, "node_modules", ".prisma", "client");
 
   // Verificar se o diretório de build existe
   if (!fs.existsSync(buildPath)) {
@@ -75,12 +90,15 @@ function copyPrismaBinaries() {
     generatedPrismaPath,
     prismaClientPath,
     dotPrismaPath,
+    path.join(projectRoot, "node_modules", ".prisma"),
   ];
 
-  // Padrão para encontrar binários do Query Engine
+  // Padrão para encontrar binários do Query Engine (especialmente rhel-openssl-3.0.x)
   const binaryPattern = /(libquery_engine|query_engine|query-engine).*\.(node|so)$/i;
+  const rhelPattern = /rhel-openssl-3\.0\.x/i;
 
   let copiedCount = 0;
+  const copiedFiles = new Set();
 
   // Procurar e copiar binários
   for (const searchPath of searchPaths) {
@@ -97,12 +115,17 @@ function copyPrismaBinaries() {
         const fileName = path.basename(binaryPath);
         const destPath = path.join(buildPath, fileName);
 
-        try {
-          copyRecursiveSync(binaryPath, destPath);
-          console.log(`✓ Copiado: ${fileName}`);
-          copiedCount++;
-        } catch (error) {
-          console.error(`✗ Erro ao copiar ${fileName}:`, error.message);
+        // Priorizar binários rhel-openssl-3.0.x
+        const isRhel = rhelPattern.test(fileName);
+        if (isRhel || !copiedFiles.has(fileName)) {
+          try {
+            copyRecursiveSync(binaryPath, destPath);
+            console.log(`✓ Copiado: ${fileName}${isRhel ? " (rhel-openssl-3.0.x)" : ""}`);
+            copiedFiles.add(fileName);
+            copiedCount++;
+          } catch (error) {
+            console.error(`✗ Erro ao copiar ${fileName}:`, error.message);
+          }
         }
       }
     }
@@ -120,18 +143,34 @@ function copyPrismaBinaries() {
     }
   }
 
-  // Também copiar para outros locais que o Prisma pode procurar
+  // Copiar para todos os locais que o Prisma pode procurar (baseado no erro)
   const additionalDestPaths = [
-    path.join(__dirname, "..", ".next", "server"),
-    path.join(__dirname, "..", ".next"),
+    path.join(projectRoot, ".next", "server", "chunks"),
+    path.join(projectRoot, ".next", "server"),
+    path.join(projectRoot, ".next"),
+    path.join(projectRoot, "src", "generated"),
   ];
 
   for (const additionalDest of additionalDestPaths) {
     if (fs.existsSync(additionalDest) && fs.existsSync(generatedPrismaPath)) {
+      // Copiar binários individuais
+      const binaries = findFiles(generatedPrismaPath, binaryPattern);
+      for (const binaryPath of binaries) {
+        const fileName = path.basename(binaryPath);
+        const destPath = path.join(additionalDest, fileName);
+        try {
+          copyRecursiveSync(binaryPath, destPath);
+          console.log(`✓ Copiado ${fileName} para ${additionalDest}`);
+        } catch (error) {
+          // Ignorar erros silenciosamente para destinos opcionais
+        }
+      }
+
+      // Copiar diretório completo
       const destPrismaPath = path.join(additionalDest, "prisma");
       try {
         copyRecursiveSync(generatedPrismaPath, destPrismaPath);
-        console.log(`✓ Copiado para: ${destPrismaPath}`);
+        console.log(`✓ Copiado diretório para: ${destPrismaPath}`);
       } catch (error) {
         // Ignorar erros silenciosamente para destinos opcionais
       }
@@ -142,6 +181,7 @@ function copyPrismaBinaries() {
     console.log(`\n✓ Concluído! ${copiedCount} arquivo(s) copiado(s).`);
   } else {
     console.log("\n⚠ Nenhum binário encontrado. Verifique se o Prisma Client foi gerado corretamente.");
+    console.log("Execute: npx prisma generate");
   }
 }
 
