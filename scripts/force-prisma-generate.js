@@ -134,23 +134,61 @@ if (fs.existsSync(clientIndexPath)) {
   // Verificar se há referências ao Data Proxy no código gerado
   const hasDataProxy = clientContent.includes("prisma://") || 
                        clientContent.includes("prisma+") || 
-                       clientContent.includes("dataproxy") ||
+                       clientContent.toLowerCase().includes("dataproxy") ||
                        clientContent.includes("DataProxy");
   
   if (hasDataProxy) {
-    console.error("\n❌ ERRO: Prisma Client foi gerado com Data Proxy habilitado!");
+    console.error("\n❌ ERRO CRÍTICO: Prisma Client foi gerado com Data Proxy habilitado!");
     console.error("Conteúdo suspeito encontrado no index.js");
     console.error("Isso não deveria acontecer. Verifique as configurações.");
     
     // Mostrar trecho do código onde foi detectado
     const lines = clientContent.split('\n');
+    let foundLines = 0;
     lines.forEach((line, index) => {
-      if (line.includes("prisma://") || line.includes("prisma+") || line.includes("dataproxy")) {
-        console.error(`Linha ${index + 1}: ${line.substring(0, 100)}`);
+      const lowerLine = line.toLowerCase();
+      if (lowerLine.includes("prisma://") || lowerLine.includes("prisma+") || lowerLine.includes("dataproxy")) {
+        console.error(`Linha ${index + 1}: ${line.substring(0, 150)}`);
+        foundLines++;
+        if (foundLines >= 10) {
+          console.error("... (mais linhas encontradas)");
+          return false; // Parar após 10 linhas
+        }
       }
     });
     
-    process.exit(1);
+    console.error("\n🔧 Tentando regenerar o Prisma Client...");
+    // Tentar limpar e regenerar novamente
+    try {
+      fs.rmSync(generatedPrismaPath, { recursive: true, force: true });
+      fs.rmSync(dotPrismaPath, { recursive: true, force: true });
+      console.log("✓ Diretórios limpos, regenerando...");
+      
+      execSync("npx prisma generate", {
+        cwd: projectRoot,
+        stdio: "inherit",
+        env: env,
+      });
+      
+      // Verificar novamente
+      if (fs.existsSync(clientIndexPath)) {
+        const newClientContent = fs.readFileSync(clientIndexPath, "utf8");
+        const stillHasDataProxy = newClientContent.includes("prisma://") || 
+                                  newClientContent.includes("prisma+") || 
+                                  newClientContent.toLowerCase().includes("dataproxy");
+        
+        if (stillHasDataProxy) {
+          console.error("\n❌ ERRO: Após regeneração, ainda há Data Proxy!");
+          console.error("O problema pode estar no schema.prisma ou nas variáveis de ambiente.");
+          process.exit(1);
+        } else {
+          console.log("\n✓ Prisma Client regenerado corretamente sem Data Proxy");
+        }
+      }
+    } catch (regenerateError) {
+      console.error("\n❌ Erro ao tentar regenerar:", regenerateError.message);
+      process.exit(1);
+    }
   }
   
   // Verificar se está usando library engine
