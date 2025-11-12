@@ -1,6 +1,10 @@
 {
-  "buildCommand": "npm run build",
+  "buildCommand": "PRISMA_GENERATE_DATAPROXY=false npm run build",
   "installCommand": "npm install",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "env": {
+    "PRISMA_GENERATE_DATAPROXY": "false",
+    "PRISMA_CLIENT_ENGINE_TYPE": "library"
+  }
 }
 

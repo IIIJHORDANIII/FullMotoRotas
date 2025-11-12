@@ -6,10 +6,13 @@ const globalForPrisma = globalThis as unknown as {
 
 // Validar DATABASE_URL antes de criar o Prisma Client
 const databaseUrl = process.env.DATABASE_URL;
+
 if (!databaseUrl) {
-  throw new Error(
-    "DATABASE_URL não está definida. Configure a variável de ambiente DATABASE_URL com a string de conexão do MongoDB."
-  );
+  const errorMessage = 
+    "DATABASE_URL não está definida. Configure a variável de ambiente DATABASE_URL com a string de conexão do MongoDB.\n" +
+    "Na Vercel, configure esta variável em: Settings > Environment Variables";
+  console.error("❌", errorMessage);
+  throw new Error(errorMessage);
 }
 
 // Verificar se a URL não é do Data Proxy (deve ser uma URL MongoDB normal)
@@ -25,7 +28,7 @@ process.env.PRISMA_CLIENT_ENGINE_TYPE = "library";
 
 // Log da URL para debug (apenas em desenvolvimento)
 if (process.env.NODE_ENV === "development") {
-  console.log("DATABASE_URL configurada:", databaseUrl.substring(0, 20) + "...");
+  console.log("✓ DATABASE_URL configurada:", databaseUrl.substring(0, 30) + "...");
 }
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({

@@ -16,7 +16,12 @@ const parsed = envSchema.safeParse({
 
 if (!parsed.success) {
   const formatted = parsed.error.format();
-  console.error("Variáveis de ambiente inválidas:", formatted);
+  console.error("❌ Variáveis de ambiente inválidas:", formatted);
+  console.error("📝 Certifique-se de configurar todas as variáveis de ambiente na Vercel:");
+  console.error("   - DATABASE_URL (obrigatória)");
+  console.error("   - JWT_SECRET (obrigatória, mínimo 16 caracteres)");
+  console.error("   - DEFAULT_ADMIN_EMAIL (opcional)");
+  console.error("   - DEFAULT_ADMIN_PASSWORD (opcional)");
   throw new Error("Falha ao validar variáveis de ambiente");
 }
 
