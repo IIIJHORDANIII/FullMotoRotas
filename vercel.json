@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run build",
+  "buildCommand": "PRISMA_GENERATE_DATAPROXY=false PRISMA_CLIENT_ENGINE_TYPE=library PRISMA_CLI_QUERY_ENGINE_TYPE=library node scripts/force-prisma-generate.js && npm run build",
   "installCommand": "npm install",
   "framework": "nextjs",
   "env": {

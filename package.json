@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "PRISMA_GENERATE_DATAPROXY=false PRISMA_CLIENT_ENGINE_TYPE=library PRISMA_CLI_QUERY_ENGINE_TYPE=library npx prisma generate && next dev",
     "prebuild": "echo '🔧 Executando prebuild...' && node scripts/force-prisma-generate.js",
-    "build": "next build && node scripts/copy-prisma-binaries.js",
+    "build": "echo '🔧 Iniciando build do Next.js...' && next build && node scripts/copy-prisma-binaries.js",
     "start": "next start",
     "lint": "next lint",
     "postinstall": "echo '🔧 Executando postinstall...' && node scripts/force-prisma-generate.js",
