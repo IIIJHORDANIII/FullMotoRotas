@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "prisma generate && next dev",
-    "build": "prisma generate && next build && node scripts/copy-prisma-binaries.js",
+    "dev": "npx prisma generate && next dev",
+    "build": "npx prisma generate && next build && node scripts/copy-prisma-binaries.js",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "prisma generate",
+    "postinstall": "npx prisma generate",
     "ensure-admin": "npx tsx scripts/ensure-admin.ts"
   },
   "dependencies": {
