@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { unauthorized, forbidden } from "@/lib/errors";
 import { roleMatches, type AllowedRoles } from "@/lib/rbac";
 import { Role } from "@/generated/prisma/enums";
-import type { User } from "@/generated/prisma/client";
+import type { User } from "@/generated/prisma";
 
 export type AuthContext = {
   user: User;

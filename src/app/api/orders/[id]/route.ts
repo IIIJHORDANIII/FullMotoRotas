@@ -5,7 +5,7 @@ import { AppError, forbidden, notFound } from "@/lib/errors";
 import { errorResponse, jsonResponse } from "@/lib/http";
 import { deliveryOrderUpdateSchema } from "@/validation/order";
 import { DeliveryStatus, Role } from "@/generated/prisma/enums";
-import type { Prisma } from "@/generated/prisma/client";
+import type { Prisma } from "@/generated/prisma";
 
 async function getOrderOrFail(id: string) {
   const order = await prisma.deliveryOrder.findUnique({

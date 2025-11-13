@@ -8,7 +8,7 @@ import { registerSchema } from "@/validation/auth";
 import { establishmentSchema } from "@/validation/establishment";
 import { motoboySchema } from "@/validation/motoboy";
 import { Role } from "@/generated/prisma/enums";
-import { Prisma } from "@/generated/prisma/client";
+import { Prisma } from "@/generated/prisma";
 
 export async function POST(request: NextRequest) {
   try {

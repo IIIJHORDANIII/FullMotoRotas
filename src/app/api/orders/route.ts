@@ -5,7 +5,7 @@ import { AppError, forbidden, notFound } from "@/lib/errors";
 import { errorResponse, jsonResponse } from "@/lib/http";
 import { deliveryOrderSchema } from "@/validation/order";
 import { Role, DeliveryStatus } from "@/generated/prisma/enums";
-import type { Prisma } from "@/generated/prisma/client";
+import type { Prisma } from "@/generated/prisma";
 import crypto from "crypto";
 
 function generateDeliveryCode() {

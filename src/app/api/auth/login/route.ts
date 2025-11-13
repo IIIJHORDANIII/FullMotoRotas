@@ -8,8 +8,40 @@ import { errorResponse, jsonResponse } from "@/lib/http";
 
 export async function POST(request: NextRequest) {
   try {
+    console.log("[Login] ========================================");
     console.log("[Login] Iniciando processo de login...");
-    console.log("[Login] Prisma Client disponível:", !!prisma);
+    console.log("[Login] Timestamp:", new Date().toISOString());
+    
+    // Verificar se Prisma Client está disponível
+    try {
+      console.log("[Login] Verificando Prisma Client...");
+      console.log("[Login] Prisma Client disponível:", !!prisma);
+      if (prisma) {
+        console.log("[Login] ✓ Prisma Client está disponível");
+      } else {
+        console.error("[Login] ❌ Prisma Client não está disponível!");
+        return errorResponse(
+          new AppError(
+            "Prisma Client não está disponível. Verifique os logs do servidor.",
+            500,
+            "PRISMA_CLIENT_UNAVAILABLE"
+          )
+        );
+      }
+    } catch (prismaCheckError) {
+      console.error("[Login] ❌ Erro ao verificar Prisma Client:", prismaCheckError);
+      if (prismaCheckError instanceof Error) {
+        console.error("[Login] Mensagem:", prismaCheckError.message);
+        console.error("[Login] Stack:", prismaCheckError.stack);
+      }
+      return errorResponse(
+        new AppError(
+          `Erro ao inicializar Prisma Client: ${prismaCheckError instanceof Error ? prismaCheckError.message : "Erro desconhecido"}`,
+          500,
+          "PRISMA_INIT_ERROR"
+        )
+      );
+    }
     
     // Verificar se DATABASE_URL está configurada
     if (!process.env.DATABASE_URL) {
@@ -60,21 +92,35 @@ export async function POST(request: NextRequest) {
     let user;
     try {
       console.log("[Login] Tentando buscar usuário no banco...");
+      console.log("[Login] Email:", email);
+      console.log("[Login] Executando prisma.user.findUnique...");
+      
+      // Tentar executar a query
       user = await prisma.user.findUnique({ where: { email } });
+      
       console.log("[Login] Query executada com sucesso");
+      console.log("[Login] Usuário encontrado:", !!user);
     } catch (dbError) {
-      console.error("[Login] ❌ Erro ao consultar banco de dados:", dbError);
+      console.error("[Login] ========================================");
+      console.error("[Login] ❌ ERRO AO CONSULTAR BANCO DE DADOS");
+      console.error("[Login] ========================================");
+      console.error("[Login] Erro completo:", dbError);
+      
       if (dbError instanceof Error) {
-        console.error("[Login] Mensagem do erro DB:", dbError.message);
-        console.error("[Login] Stack do erro DB:", dbError.stack);
+        console.error("[Login] Tipo do erro:", dbError.constructor.name);
+        console.error("[Login] Mensagem do erro:", dbError.message);
+        console.error("[Login] Stack completo:");
+        console.error(dbError.stack);
         
         // Verificar se é erro de conexão
-        if (dbError.message.includes("connect") || 
-            dbError.message.includes("ECONNREFUSED") ||
-            dbError.message.includes("ENOTFOUND") ||
-            dbError.message.includes("timeout") ||
-            dbError.message.includes("MongoNetworkError") ||
-            dbError.message.includes("MongoServerSelectionError")) {
+        const errorMsgLower = dbError.message.toLowerCase();
+        if (errorMsgLower.includes("connect") ||
+            errorMsgLower.includes("econnrefused") ||
+            errorMsgLower.includes("enotfound") ||
+            errorMsgLower.includes("timeout") ||
+            errorMsgLower.includes("authentication failed") ||
+            errorMsgLower.includes("postgres")) {
+          console.error("[Login] Tipo detectado: Erro de conexão com Postgres");
           return errorResponse(
             new AppError(
               "Erro ao conectar com o banco de dados. Verifique a configuração da DATABASE_URL.",
@@ -84,19 +130,11 @@ export async function POST(request: NextRequest) {
           );
         }
         
-        // Verificar se é erro de Data Proxy
-        if (dbError.message.includes("prisma://") || 
-            dbError.message.includes("prisma+") || 
-            dbError.message.includes("must start with the protocol")) {
-          return errorResponse(
-            new AppError(
-              "Erro de configuração do Prisma: Data Proxy detectado. Verifique os logs de build.",
-              500,
-              "PRISMA_DATA_PROXY_ERROR"
-            )
-          );
-        }
+        // Outros erros do Prisma
+        console.error("[Login] Tipo detectado: Erro desconhecido do Prisma");
       }
+      
+      console.error("[Login] ========================================");
       throw dbError;
     }
 
@@ -140,20 +178,6 @@ export async function POST(request: NextRequest) {
       console.error("[Login] Mensagem:", error.message);
       console.error("[Login] Stack:", error.stack);
       
-      // Verificar se é erro de Data Proxy
-      if (error.message.includes("prisma://") || error.message.includes("prisma+") || error.message.includes("must start with the protocol")) {
-        console.error("[Login] ⚠️ ERRO DE DATA PROXY DETECTADO!");
-        console.error("[Login] O Prisma Client foi gerado com Data Proxy habilitado.");
-        console.error("[Login] Verifique se o script force-prisma-generate.js foi executado durante o build.");
-        return errorResponse(
-          new AppError(
-            "Erro de configuração do Prisma: Data Proxy detectado. Verifique os logs de build.",
-            500,
-            "PRISMA_DATA_PROXY_ERROR"
-          )
-        );
-      }
-      
       // Verificar se é erro de conexão
       if (error.message.includes("DATABASE_URL") || error.message.includes("connection")) {
         console.error("[Login] ⚠️ ERRO DE CONEXÃO COM BANCO DE DADOS!");
@@ -165,6 +189,7 @@ export async function POST(request: NextRequest) {
           )
         );
       }
+      
     }
     
     return errorResponse(

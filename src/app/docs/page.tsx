@@ -22,7 +22,7 @@ const sections: Section[] = [
     description:
       "Camada backend baseada em Next.js 15 (App Router) com Prisma ORM e autenticação JWT. Utiliza TypeScript integral e validações com Zod para garantir contratos consistentes.",
     items: [
-      "Prisma + MongoDB por padrão (adaptável para outros bancos)",
+      "Prisma + Postgres (Neon) por padrão",
       "Bootstrap automático de usuário administrador baseado em variáveis de ambiente",
       "Utilitários centralizados em '@/lib' (auth, erros, RBAC, cliente Prisma)",
       "Estrutura REST modular em 'src/app/api', separada por domínio",
@@ -34,7 +34,7 @@ const sections: Section[] = [
     description:
       "Defina o arquivo .env a partir de config/env.example antes de executar o projeto.",
     items: [
-      "DATABASE_URL – conexão MongoDB Atlas",
+      "DATABASE_URL – string do Prisma Data Proxy (Prisma Accelerate)",
       "JWT_SECRET – segredo de assinatura JWT (mínimo 16 caracteres)",
       "DEFAULT_ADMIN_EMAIL / DEFAULT_ADMIN_PASSWORD – credenciais iniciais do administrador",
     ],
@@ -151,7 +151,10 @@ const endpoints: Endpoint[] = [
 const setupSteps = [
   { command: "npm install", description: "Instala dependências do projeto" },
   { command: "cp config/env.example .env", description: "Configura variáveis de ambiente" },
-  { command: "npx prisma db push", description: "Sincroniza schema com MongoDB" },
+  {
+    command: "npx prisma migrate dev",
+    description: "Aplica migrações (exige DIRECT_DATABASE_URL com acesso Postgres direto)",
+  },
   { command: "npm run dev", description: "Inicia servidor de desenvolvimento" },
 ];
 

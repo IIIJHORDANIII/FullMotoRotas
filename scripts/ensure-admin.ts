@@ -26,19 +26,17 @@ try {
   console.warn("⚠️  Não foi possível carregar .env, usando variáveis de ambiente do sistema");
 }
 
-import { PrismaClient } from "../src/generated/prisma/client";
-import { Role } from "../src/generated/prisma/enums";
-import bcrypt from "bcryptjs";
-import { randomBytes } from "crypto";
-
-const prisma = new PrismaClient();
-
-// Gerar ObjectId válido para MongoDB (24 caracteres hexadecimais)
-function generateObjectId(): string {
-  return randomBytes(12).toString("hex");
-}
+process.env.PRISMA_GENERATE_DATAPROXY = "true";
+process.env.PRISMA_CLIENT_USE_DATAPROXY = "true";
+process.env.PRISMA_CLIENT_DATAPROXY = "true";
 
 async function ensureAdmin() {
+  const { PrismaClient, Role } = await import("@prisma/client");
+  const bcryptModule = await import("bcryptjs");
+  const bcrypt = bcryptModule.default ?? bcryptModule;
+
+  const prisma = new PrismaClient();
+
   const email = process.env.DEFAULT_ADMIN_EMAIL || "admin@motorotas.com";
   const password = process.env.DEFAULT_ADMIN_PASSWORD || "Admin@123";
 
@@ -70,7 +68,6 @@ async function ensureAdmin() {
       
       await prisma.user.create({
         data: {
-          id: generateObjectId(),
           email,
           password: passwordHash,
           role: Role.ADMIN,
@@ -93,6 +90,9 @@ async function ensureAdmin() {
   }
 }
 
-ensureAdmin();
+ensureAdmin().catch((error) => {
+  console.error("❌ Erro inesperado ao executar ensure-admin:", error);
+  process.exit(1);
+});
 
 

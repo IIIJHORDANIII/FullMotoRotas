@@ -1,7 +1,13 @@
 import { z } from "zod";
 
 const envSchema = z.object({
-  DATABASE_URL: z.string().min(1),
+  DATABASE_URL: z
+    .string()
+    .min(1)
+    .regex(
+      /^prisma(\+[a-z]+)?:\/\//i,
+      "DATABASE_URL deve apontar para o Prisma Data Proxy (ex: prisma+postgres://...)."
+    ),
   JWT_SECRET: z.string().min(16, "JWT_SECRET deve ter pelo menos 16 caracteres."),
   DEFAULT_ADMIN_EMAIL: z.string().email().default("admin@motorotas.com"),
   DEFAULT_ADMIN_PASSWORD: z.string().min(8).default("Admin@123"),
@@ -18,7 +24,7 @@ if (!parsed.success) {
   const formatted = parsed.error.format();
   console.error("❌ Variáveis de ambiente inválidas:", formatted);
   console.error("📝 Certifique-se de configurar todas as variáveis de ambiente na Vercel:");
-  console.error("   - DATABASE_URL (obrigatória)");
+  console.error("   - DATABASE_URL (obrigatória, Prisma Data Proxy)");
   console.error("   - JWT_SECRET (obrigatória, mínimo 16 caracteres)");
   console.error("   - DEFAULT_ADMIN_EMAIL (opcional)");
   console.error("   - DEFAULT_ADMIN_PASSWORD (opcional)");

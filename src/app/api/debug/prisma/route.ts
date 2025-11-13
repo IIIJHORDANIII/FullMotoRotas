@@ -29,10 +29,12 @@ export async function GET() {
       PRISMA_GENERATE_DATAPROXY: process.env.PRISMA_GENERATE_DATAPROXY,
       PRISMA_CLIENT_ENGINE_TYPE: process.env.PRISMA_CLIENT_ENGINE_TYPE,
       PRISMA_CLI_QUERY_ENGINE_TYPE: process.env.PRISMA_CLI_QUERY_ENGINE_TYPE,
+      PRISMA_CLIENT_USE_DATAPROXY: process.env.PRISMA_CLIENT_USE_DATAPROXY,
       NODE_ENV: process.env.NODE_ENV,
     },
     prismaClient: {
       created: !!prisma,
+      runtime: process.env.DATABASE_URL?.startsWith("prisma") ? "data-proxy" : "standard",
     },
     database: {
       connected: false,
@@ -45,9 +47,9 @@ export async function GET() {
     return NextResponse.json(debug, { status: 500 });
   }
 
-  // Tentar conectar ao banco de dados (MongoDB)
+  // Tentar conectar ao banco de dados (Postgres)
   try {
-    // Para MongoDB, tentamos uma operação simples como contar documentos
+    // Para Postgres, tentamos uma operação simples como contar registros
     const userCount = await prisma.user.count();
     debug.database.connected = true;
     debug.database.testQuery = { userCount };

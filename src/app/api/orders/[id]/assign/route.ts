@@ -6,7 +6,7 @@ import { errorResponse, jsonResponse } from "@/lib/http";
 import { assignmentSchema } from "@/validation/order";
 import { AssignmentStatus, DeliveryStatus, Role } from "@/generated/prisma/enums";
 import { z } from "zod";
-import { Prisma } from "@/generated/prisma/client";
+import { Prisma } from "@/generated/prisma";
 
 async function ensureOrder(id: string) {
   const order = await prisma.deliveryOrder.findUnique({ where: { id } });

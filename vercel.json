@@ -1,11 +1,11 @@
 {
-  "buildCommand": "PRISMA_GENERATE_DATAPROXY=false PRISMA_CLIENT_ENGINE_TYPE=library PRISMA_CLI_QUERY_ENGINE_TYPE=library node scripts/force-prisma-generate.js && npm run build",
+  "buildCommand": "node scripts/force-prisma-generate.js && npm run build",
   "installCommand": "npm install",
   "framework": "nextjs",
   "env": {
-    "PRISMA_GENERATE_DATAPROXY": "false",
-    "PRISMA_CLIENT_ENGINE_TYPE": "library",
-    "PRISMA_CLI_QUERY_ENGINE_TYPE": "library"
+    "PRISMA_GENERATE_DATAPROXY": "true",
+    "PRISMA_CLIENT_USE_DATAPROXY": "true",
+    "PRISMA_CLIENT_DATAPROXY": "true"
   }
 }
 

@@ -18,9 +18,9 @@ export async function GET() {
     timestamp: new Date().toISOString(),
   };
 
-  // Verificar conexão com o banco de dados (MongoDB)
+  // Verificar conexão com o banco de dados (Postgres)
   try {
-    // Para MongoDB, tentamos uma operação simples como contar documentos
+    // Para Postgres, tentamos uma operação simples como contar registros
     await prisma.user.count();
     health.database = { connected: true };
   } catch (error) {
@@ -33,8 +33,8 @@ export async function GET() {
 
   // Adicionar informações do Prisma
   health.prisma = {
-    engineType: process.env.PRISMA_CLIENT_ENGINE_TYPE || "library",
-    generateDataproxy: process.env.PRISMA_GENERATE_DATAPROXY || "false",
+    dataProxy: process.env.DATABASE_URL?.startsWith("prisma") ? "enabled" : "disabled",
+    generateDataproxy: process.env.PRISMA_GENERATE_DATAPROXY ?? "true",
   };
 
   const statusCode = health.status === "ok" ? 200 : 503;

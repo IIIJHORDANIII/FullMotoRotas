@@ -2,16 +2,15 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider      = "prisma-client-js"
-  output        = "../src/generated/prisma"
-  binaryTargets = ["native", "rhel-openssl-3.0.x", "debian-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
-  engineType    = "library"
+  provider        = "prisma-client-js"
   previewFeatures = []
 }
 
 datasource db {
-  provider = "mongodb"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
+  // Uncomment if you need a separate unpooled connection (Prisma <5.10)
+  // directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 /// Roles de acesso para usuários do sistema.
@@ -45,7 +44,7 @@ enum AssignmentStatus {
 }
 
 model User {
-  id        String   @id @default(cuid()) @map("_id") @db.ObjectId
+  id        String   @id @default(cuid())
   email     String   @unique
   password  String
   role      Role
@@ -60,8 +59,8 @@ model User {
 }
 
 model EstablishmentProfile {
-  id                           String            @id @default(cuid()) @map("_id") @db.ObjectId
-  userId                       String            @unique @db.ObjectId
+  id                           String            @id @default(cuid())
+  userId                       String            @unique
   name                         String
   cnpj                         String            @unique
   contactEmail                 String
@@ -87,8 +86,8 @@ model EstablishmentProfile {
 }
 
 model MotoboyProfile {
-  id           String   @id @default(cuid()) @map("_id") @db.ObjectId
-  userId       String   @unique @db.ObjectId
+  id           String   @id @default(cuid())
+  userId       String   @unique
   fullName     String
   cpf          String   @unique
   cnhNumber    String
@@ -109,8 +108,8 @@ model MotoboyProfile {
 }
 
 model DeliveryOrder {
-  id               String         @id @default(cuid()) @map("_id") @db.ObjectId
-  establishmentId  String @db.ObjectId
+  id               String         @id @default(cuid())
+  establishmentId  String
   customerName     String
   customerPhone    String?
   pickupAddress    String
@@ -132,9 +131,9 @@ model DeliveryOrder {
 }
 
 model DeliveryAssignment {
-  id              String           @id @default(cuid()) @map("_id") @db.ObjectId
-  orderId         String @db.ObjectId
-  motoboyId       String @db.ObjectId
+  id              String           @id @default(cuid())
+  orderId         String
+  motoboyId       String
   status          AssignmentStatus @default(ASSIGNED)
   rejectionReason String?
   assignedAt      DateTime         @default(now())
@@ -146,8 +145,8 @@ model DeliveryAssignment {
 }
 
 model DeliveryEvent {
-  id        String         @id @default(cuid()) @map("_id") @db.ObjectId
-  orderId   String @db.ObjectId
+  id        String         @id @default(cuid())
+  orderId   String
   status    DeliveryStatus
   message   String?
   metadata  Json?
@@ -157,10 +156,10 @@ model DeliveryEvent {
 }
 
 model Review {
-  id        String   @id @default(cuid()) @map("_id") @db.ObjectId
-  orderId   String @db.ObjectId
-  authorId  String @db.ObjectId
-  targetId  String @db.ObjectId
+  id        String   @id @default(cuid())
+  orderId   String
+  authorId  String
+  targetId  String
   rating    Int
   comment   String?
   createdAt DateTime @default(now())

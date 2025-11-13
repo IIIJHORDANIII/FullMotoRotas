@@ -12,161 +12,96 @@ const path = require("path");
 const projectRoot = path.join(__dirname, "..");
 const generatedPrismaPath = path.join(projectRoot, "src", "generated", "prisma");
 const enumsFile = path.join(generatedPrismaPath, "enums.ts");
-const clientFile = path.join(generatedPrismaPath, "client.ts");
+const indexFile = path.join(generatedPrismaPath, "index.ts");
 const schemaPath = path.join(projectRoot, "prisma", "schema.prisma");
+
+function loadEnvFromFile(filePath) {
+  if (!fs.existsSync(filePath)) {
+    return;
+  }
+
+  try {
+    const content = fs.readFileSync(filePath, "utf8");
+    const lines = content.split(/\r?\n/);
+    lines.forEach((line) => {
+      const match = line.match(/^\s*([^#=\s]+)\s*=\s*(.*)\s*$/);
+      if (!match) return;
+
+      const key = match[1];
+      let value = match[2];
+
+      const hashIndex = value.indexOf("#");
+      if (hashIndex !== -1) {
+        value = value.slice(0, hashIndex);
+      }
+
+      value = value.trim();
+
+      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1);
+      }
+
+      if (!process.env[key]) {
+        process.env[key] = value;
+      }
+    });
+  } catch (error) {
+    console.warn("⚠ Não foi possível carregar variáveis do .env:", error instanceof Error ? error.message : String(error));
+  }
+}
+
+loadEnvFromFile(path.join(projectRoot, ".env"));
 
 console.log("Garantindo que o Prisma Client seja gerado...");
 
-// Limpar o diretório gerado para garantir que não há arquivos antigos com Data Proxy
-if (fs.existsSync(generatedPrismaPath)) {
-  console.log("Limpando diretório gerado anteriormente para evitar conflitos...");
-  try {
-    fs.rmSync(generatedPrismaPath, { recursive: true, force: true });
-  } catch (error) {
-    console.warn("⚠ Não foi possível limpar o diretório:", error.message);
-  }
-}
+fs.mkdirSync(generatedPrismaPath, { recursive: true });
 
-// Garantir que o diretório existe
-if (!fs.existsSync(generatedPrismaPath)) {
-  console.log("Criando diretório:", generatedPrismaPath);
-  fs.mkdirSync(generatedPrismaPath, { recursive: true });
-}
-
-// Executar Prisma generate explicitamente SEM Data Proxy
-console.log("Executando: npx prisma generate (sem Data Proxy)");
+// Executar Prisma generate explicitamente COM Data Proxy
+console.log("Executando: npx prisma generate --data-proxy");
 try {
-  // Garantir que o Data Proxy está desabilitado e limpar variáveis relacionadas
   const env = {
     ...process.env,
-    PRISMA_GENERATE_DATAPROXY: "false",
-    PRISMA_CLIENT_ENGINE_TYPE: "library",
-    PRISMA_CLI_QUERY_ENGINE_TYPE: "library",
+    PRISMA_GENERATE_DATAPROXY: "true",
+    PRISMA_CLIENT_USE_DATAPROXY: "true",
+    PRISMA_CLIENT_DATAPROXY: "true",
   };
-  
-  // Remover qualquer variável que possa forçar o Data Proxy
-  delete env.PRISMA_CLIENT_DATAPROXY_URL;
-  delete env.DATAPROXY_URL;
-  
-  // Garantir que DATABASE_URL está definida e não é do Data Proxy
-  if (env.DATABASE_URL && (env.DATABASE_URL.startsWith("prisma://") || env.DATABASE_URL.startsWith("prisma+"))) {
-    console.error("❌ DATABASE_URL está configurada para usar Prisma Data Proxy!");
-    console.error("Configure DATABASE_URL com uma string de conexão MongoDB direta (ex: mongodb+srv://...)");
+
+  if (!env.DATABASE_URL) {
+    console.error("❌ DATABASE_URL não está definida. Defina uma URL de Data Proxy antes de gerar o Prisma Client.");
     process.exit(1);
   }
-  
-  // Limpar node_modules/.prisma também para garantir regeneração completa
-  const dotPrismaPath = path.join(projectRoot, "node_modules", ".prisma");
-  if (fs.existsSync(dotPrismaPath)) {
-    console.log("Limpando node_modules/.prisma para regeneração completa...");
-    try {
-      fs.rmSync(dotPrismaPath, { recursive: true, force: true });
-    } catch (e) {
-      console.warn("⚠ Não foi possível limpar node_modules/.prisma:", e.message);
-    }
-  }
-  
-  execSync("npx prisma generate", {
+
+  execSync("npx prisma generate --data-proxy", {
     cwd: projectRoot,
     stdio: "inherit",
     env: env,
   });
-  console.log("✓ Prisma generate executado com sucesso (sem Data Proxy)");
+  console.log("✓ Prisma generate executado com sucesso (Data Proxy)");
 } catch (error) {
   console.error("⚠ Erro ao executar prisma generate:", error.message);
-  // Continuar mesmo se houver erro, vamos criar os arquivos manualmente
 }
 
-// Verificar se os arquivos foram gerados
-const clientExists = fs.existsSync(clientFile);
-const enumsExists = fs.existsSync(enumsFile);
+function ensureBridgeFiles() {
+  const indexContent = `/* Pontes para o Prisma Client oficial. Não editar manualmente. */\nexport * from "@prisma/client";\nexport type { Prisma } from "@prisma/client";\n`;
 
-// Verificar se o client.ts gerado não está usando Data Proxy
-if (clientExists) {
-  try {
-    const clientContent = fs.readFileSync(clientFile, "utf8");
-    // Verificar se há referências ao Data Proxy no código gerado
-    if (clientContent.includes("prisma://") || clientContent.includes("prisma+") || clientContent.includes("dataproxy")) {
-      console.warn("⚠ Arquivo client.ts pode estar configurado para usar Data Proxy");
-      console.warn("Regenerando Prisma Client sem Data Proxy...");
-      
-      // Limpar e regenerar novamente
-      fs.rmSync(generatedPrismaPath, { recursive: true, force: true });
-      fs.mkdirSync(generatedPrismaPath, { recursive: true });
-      
-      const env = {
-        ...process.env,
-        PRISMA_GENERATE_DATAPROXY: "false",
-        PRISMA_CLIENT_ENGINE_TYPE: "library",
-        PRISMA_CLI_QUERY_ENGINE_TYPE: "library",
-      };
-      delete env.PRISMA_CLIENT_DATAPROXY_URL;
-      delete env.DATAPROXY_URL;
-      
-      execSync("npx prisma generate", {
-        cwd: projectRoot,
-        stdio: "inherit",
-        env: env,
-      });
-      console.log("✓ Prisma Client regenerado sem Data Proxy");
-    }
-  } catch (error) {
-    console.warn("⚠ Não foi possível verificar o conteúdo do client.ts:", error.message);
+  const enumsContent = `/* !!! This is code generated by Prisma. Do not edit directly. !!! */\n/* eslint-disable */\n// biome-ignore-all lint: generated file\n// @ts-nocheck \n/*\n* This file exports all enum related types from the schema.\n*\n* 🟢 You can import this file directly.\n*/\n\n// Re-export enums from the main Prisma client\nexport {\n  Role,\n  type Role as RoleType,\n  EstablishmentPlan,\n  type EstablishmentPlan as EstablishmentPlanType,\n  DeliveryStatus,\n  type DeliveryStatus as DeliveryStatusType,\n  AssignmentStatus,\n  type AssignmentStatus as AssignmentStatusType,\n} from './index';\n`;
+
+  fs.writeFileSync(indexFile, indexContent, "utf8");
+  fs.writeFileSync(enumsFile, enumsContent, "utf8");
+  console.log("✓ Arquivos bridge (index.ts e enums.ts) atualizados");
+}
+
+ensureBridgeFiles();
+
+const prismaIndexPath = path.join(projectRoot, "node_modules", "@prisma", "client", "index.js");
+if (fs.existsSync(prismaIndexPath)) {
+  const clientContent = fs.readFileSync(prismaIndexPath, "utf8");
+  if (!clientContent.includes("runtime/data-proxy")) {
+    console.warn("⚠ Não foi possível confirmar o runtime do Data Proxy em @prisma/client/index.js");
   }
 }
 
-if (!clientExists) {
-  console.warn("⚠ Arquivo client.ts não encontrado após prisma generate");
-  console.warn("Isso pode indicar um problema com a configuração do Prisma");
-}
-
-// Criar enums.ts se não existir (sempre recriar para garantir que está atualizado)
-console.log("Garantindo que enums.ts existe e está atualizado...");
-const enumsContent = `/* !!! This is code generated by Prisma. Do not edit directly. !!! */
-/* eslint-disable */
-// biome-ignore-all lint: generated file
-// @ts-nocheck 
-/*
-* This file exports all enum related types from the schema.
-*
-* 🟢 You can import this file directly.
-*/
-
-// Re-export enums from the main Prisma client
-export {
-  Role,
-  type Role as RoleType,
-  EstablishmentPlan,
-  type EstablishmentPlan as EstablishmentPlanType,
-  DeliveryStatus,
-  type DeliveryStatus as DeliveryStatusType,
-  AssignmentStatus,
-  type AssignmentStatus as AssignmentStatusType,
-} from './index';
-`;
-
-try {
-  fs.writeFileSync(enumsFile, enumsContent, "utf8");
-  console.log("✓ Arquivo enums.ts criado/atualizado");
-} catch (error) {
-  console.error("❌ Erro ao criar enums.ts:", error.message);
-  process.exit(1);
-}
-
-// Verificar novamente após criar enums.ts
-if (!fs.existsSync(enumsFile)) {
-  console.error("❌ Arquivo enums.ts ainda não existe após tentativa de criação");
-  process.exit(1);
-}
-
 console.log("✓ Verificação concluída");
-console.log(`  - Diretório: ${generatedPrismaPath}`);
+console.log(`  - Diretório bridge: ${generatedPrismaPath}`);
+console.log(`  - index.ts: ${fs.existsSync(indexFile) ? "✓" : "✗"}`);
 console.log(`  - enums.ts: ${fs.existsSync(enumsFile) ? "✓" : "✗"}`);
-console.log(`  - client.ts: ${fs.existsSync(clientFile) ? "✓" : "⚠ (pode não ser necessário se usar @prisma/client)"}`);
-
-// Se client.ts não existir mas enums.ts existir, podemos continuar
-// porque alguns setups do Prisma podem não gerar client.ts quando há output customizado
-if (!clientExists && enumsExists) {
-  console.warn("⚠ client.ts não encontrado, mas enums.ts existe");
-  console.warn("O build pode falhar se o código importar de @/generated/prisma/client");
-}
