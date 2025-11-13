@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
             ...motoboyData,
             userId: user.id,
             isAvailable: motoboyData.isAvailable ?? false,
-            workSchedule: motoboyData.workSchedule as Prisma.InputJsonValue | null | undefined,
+            workSchedule: motoboyData.workSchedule ?? Prisma.JsonNull,
           },
         });
       }
