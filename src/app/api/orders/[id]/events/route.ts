@@ -50,7 +50,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         orderId: id,
         status: data.status,
         message: data.message,
-        metadata: data.metadata as Prisma.InputJsonValue | null | undefined,
+        metadata:
+          data.metadata !== undefined
+            ? (data.metadata ?? Prisma.JsonNull)
+            : undefined,
       },
     });
 

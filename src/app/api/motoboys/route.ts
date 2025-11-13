@@ -102,7 +102,10 @@ export async function POST(request: NextRequest) {
           ...profile,
           userId: createdUser.id,
           isAvailable: profile.isAvailable ?? false,
-          workSchedule: profile.workSchedule as Prisma.InputJsonValue | null | undefined,
+          workSchedule:
+            profile.workSchedule !== undefined
+              ? (profile.workSchedule ?? Prisma.JsonNull)
+              : undefined,
         },
       });
 

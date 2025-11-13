@@ -15,9 +15,12 @@ export async function GET() {
     prismaClient: {
       created: !!prisma,
       runtime: process.env.DATABASE_URL?.startsWith("prisma") ? "data-proxy" : "standard",
+      error: undefined as string | undefined,
     },
     database: {
       connected: false,
+      error: undefined as string | undefined,
+      testQuery: undefined as { userCount: number } | undefined,
     },
   };
 

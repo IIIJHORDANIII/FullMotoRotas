@@ -73,9 +73,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       where: { id },
       data: {
         ...data,
-        workSchedule: data.workSchedule !== undefined 
-          ? (data.workSchedule as Prisma.InputJsonValue | null)
-          : undefined,
+        workSchedule:
+          data.workSchedule !== undefined
+            ? (data.workSchedule ?? Prisma.JsonNull)
+            : undefined,
       },
     });
 

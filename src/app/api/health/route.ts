@@ -2,20 +2,11 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
-  const health: {
-    status: string;
-    timestamp: string;
-    database?: {
-      connected: boolean;
-      error?: string;
-    };
-    prisma?: {
-      engineType?: string;
-      generateDataproxy?: string;
-    };
-  } = {
+  const health = {
     status: "ok",
     timestamp: new Date().toISOString(),
+    database: undefined as { connected: boolean; error?: string } | undefined,
+    prisma: undefined as Record<string, string | undefined> | undefined,
   };
 
   // Verificar conexão com o banco de dados (Postgres)
