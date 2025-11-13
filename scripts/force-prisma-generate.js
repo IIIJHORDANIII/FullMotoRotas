@@ -117,7 +117,8 @@ const enumsTsPath = path.join(generatedPrismaPath, "enums.ts");
 
 const indexTsContent = `/* Ponte para o Prisma Client gerado. */
 export * from "@prisma/client";
-export type { Prisma } from "@prisma/client";
+export { Prisma } from "@prisma/client";
+export type { Prisma as PrismaNamespace } from "@prisma/client";
 `;
 
 const enumsTsContent = `/* Reexporta enums do Prisma Client (Data Proxy). */
