@@ -210,7 +210,7 @@ export default function LandingPage() {
             onClick={() => router.push("/register")}
             className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition-all shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40"
           >
-            Começar Grátis
+            Cadastrar-se
           </button>
         </div>
       </nav>
@@ -245,7 +245,7 @@ export default function LandingPage() {
               onClick={() => router.push("/register")}
               className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all shadow-xl shadow-orange-500/25 hover:shadow-orange-500/40 text-lg transform hover:-translate-y-1"
             >
-              Começar Agora - Grátis
+            Cadastrar-se
             </button>
             <button
               onClick={() => router.push("/login")}
@@ -460,7 +460,7 @@ export default function LandingPage() {
                 onClick={() => router.push("/register")}
                 className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all shadow-xl shadow-orange-500/25 hover:shadow-orange-500/40 text-lg transform hover:-translate-y-1"
               >
-                Começar Agora - Grátis
+                Cadastrar-se
               </button>
               <button
                 onClick={() => router.push("/login")}
