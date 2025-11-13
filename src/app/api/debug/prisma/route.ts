@@ -2,25 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
-  const debug: {
-    timestamp: string;
-    environment: {
-      DATABASE_URL?: string;
-      PRISMA_GENERATE_DATAPROXY?: string;
-      PRISMA_CLIENT_ENGINE_TYPE?: string;
-      PRISMA_CLI_QUERY_ENGINE_TYPE?: string;
-      NODE_ENV?: string;
-    };
-    prismaClient: {
-      created: boolean;
-      error?: string;
-    };
-    database: {
-      connected: boolean;
-      error?: string;
-      testQuery?: { userCount: number };
-    };
-  } = {
+  const debug = {
     timestamp: new Date().toISOString(),
     environment: {
       DATABASE_URL: process.env.DATABASE_URL ? `${process.env.DATABASE_URL.substring(0, 30)}...` : undefined,
