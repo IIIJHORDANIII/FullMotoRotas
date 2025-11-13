@@ -23,15 +23,13 @@ export async function GET() {
   } = {
     timestamp: new Date().toISOString(),
     environment: {
-      DATABASE_URL: process.env.DATABASE_URL
-        ? `${process.env.DATABASE_URL.substring(0, 30)}...`
-        : undefined,
+      DATABASE_URL: process.env.DATABASE_URL ? `${process.env.DATABASE_URL.substring(0, 30)}...` : undefined,
       PRISMA_GENERATE_DATAPROXY: process.env.PRISMA_GENERATE_DATAPROXY,
       PRISMA_CLIENT_ENGINE_TYPE: process.env.PRISMA_CLIENT_ENGINE_TYPE,
       PRISMA_CLI_QUERY_ENGINE_TYPE: process.env.PRISMA_CLI_QUERY_ENGINE_TYPE,
       PRISMA_CLIENT_USE_DATAPROXY: process.env.PRISMA_CLIENT_USE_DATAPROXY,
       NODE_ENV: process.env.NODE_ENV,
-    },
+    } as Record<string, string | undefined>,
     prismaClient: {
       created: !!prisma,
       runtime: process.env.DATABASE_URL?.startsWith("prisma") ? "data-proxy" : "standard",
