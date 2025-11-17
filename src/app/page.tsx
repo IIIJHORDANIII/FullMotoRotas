@@ -161,27 +161,43 @@ export default function LandingPage() {
   const faqs = [
     {
       question: "Como funciona o rastreamento de entregas?",
-      answer: "Cada pedido recebe um código único de rastreamento. Clientes podem acompanhar o status em tempo real através do código, sem necessidade de login.",
+      answer: "Cada pedido recebe um código único de rastreamento (ex: ABC123XY). Clientes podem acompanhar o status em tempo real através do código, sem necessidade de login. O sistema atualiza automaticamente as etapas: recebido, despachado, em trânsito e entregue. Motoboys podem atualizar a localização em tempo real através do aplicativo, permitindo que clientes vejam exatamente onde está sua entrega no mapa.",
     },
     {
       question: "Posso integrar com meu sistema existente?",
-      answer: "Sim! Oferecemos uma API RESTful completa e bem documentada, permitindo integração fácil com qualquer sistema.",
+      answer: "Sim! Oferecemos uma API RESTful completa e bem documentada, seguindo padrões do mercado como REST API com autenticação JWT. A integração é simples e rápida - geralmente leva menos de 1 dia útil. Suportamos webhooks para notificações em tempo real, webhook retry automático e rate limiting inteligente. Nossa API é compatível com sistemas de PDV, ERPs e plataformas de e-commerce populares.",
     },
     {
       question: "Quais são os planos disponíveis?",
-      answer: "Oferecemos planos básicos, intermediários e premium para estabelecimentos, com diferentes níveis de recursos e suporte.",
+      answer: "Oferecemos dois planos principais: Básico e Profissional. O plano Básico inclui gestão completa de pedidos, rastreamento em tempo real, até 100 entregas/mês e suporte por email. O plano Profissional oferece tudo do Básico, além de relatórios avançados, API completa, entregas ilimitadas, suporte prioritário e integrações personalizadas. Ambos os planos incluem app para motoboys, dashboard web e atualizações automáticas.",
     },
     {
       question: "Como funciona a atribuição de motoboys?",
-      answer: "Estabelecimentos podem atribuir motoboys manualmente ou o sistema pode sugerir motoboys disponíveis baseado em proximidade e histórico.",
+      answer: "O sistema oferece três modos de atribuição: Manual (você escolhe o motoboy), Automática por proximidade (sistema sugere o motoboy mais próximo usando GPS) e Automática por desempenho (considera histórico de entregas, avaliações e tempo médio). Motoboys recebem notificações push quando são atribuídos e podem aceitar ou recusar. O sistema redistribui automaticamente se um motoboy recusar, garantindo que nenhuma entrega fique sem atendimento.",
     },
     {
       question: "Os dados são seguros?",
-      answer: "Sim! Utilizamos autenticação JWT, criptografia de senhas com bcrypt e controle de acesso baseado em papéis (RBAC) para garantir máxima segurança.",
+      answer: "Sim! Seguimos os mais altos padrões de segurança do mercado: autenticação JWT com tokens de curta duração, criptografia de senhas com bcrypt (salt rounds 10), controle de acesso baseado em papéis (RBAC), conexões HTTPS/TLS em todas as comunicações, backup automático diário dos dados e conformidade com LGPD. Todos os dados sensíveis são criptografados em trânsito e em repouso. Realizamos auditorias de segurança regulares.",
     },
     {
       question: "Preciso de treinamento para usar?",
-      answer: "Não! A plataforma foi desenvolvida para ser intuitiva e fácil de usar. Oferecemos documentação completa e suporte quando necessário.",
+      answer: "Não é necessário! A plataforma foi desenvolvida seguindo padrões de UX/UI do mercado, tornando-a intuitiva e fácil de usar. Oferecemos documentação completa online, vídeos tutoriais passo a passo, suporte por chat durante horário comercial e uma base de conhecimento com respostas para dúvidas comuns. A maioria dos usuários consegue começar a usar em menos de 15 minutos. Para integrações avançadas, oferecemos suporte técnico dedicado.",
+    },
+    {
+      question: "Qual é o tempo médio de entrega?",
+      answer: "O tempo médio varia conforme a distância e região, mas nosso sistema otimiza rotas automaticamente. Em áreas urbanas, a média é de 30-45 minutos. O sistema calcula automaticamente o tempo estimado baseado na distância, trânsito histórico e velocidade média do motoboy. Clientes recebem atualizações em tempo real sobre o progresso da entrega, incluindo previsão de chegada atualizada dinamicamente.",
+    },
+    {
+      question: "Como são calculadas as taxas de entrega?",
+      answer: "As taxas são calculadas de forma transparente e personalizável. Você define uma taxa base (ex: R$ 5,00) e uma taxa adicional por quilômetro (ex: R$ 1,50/km). O sistema calcula automaticamente a distância entre o ponto de retirada e entrega usando APIs de geolocalização consolidadas no mercado. Estabelecimentos podem definir raio de entrega máximo, horários de funcionamento e valores diferenciados por região ou horário. Todas as taxas são exibidas claramente antes da confirmação do pedido.",
+    },
+    {
+      question: "O que acontece se um motoboy não aceitar a entrega?",
+      answer: "O sistema possui redistribuição automática inteligente. Se um motoboy recusar ou não responder em até 2 minutos, o sistema automaticamente oferece a corrida para o próximo motoboy disponível mais próximo. Isso garante que nenhuma entrega fique sem atendimento. Estabelecimentos também podem configurar alertas para serem notificados quando houver múltiplas recusas, permitindo intervenção manual se necessário. O histórico de recusas é registrado para análise e melhoria contínua.",
+    },
+    {
+      question: "Posso rastrear múltiplas entregas ao mesmo tempo?",
+      answer: "Sim! O dashboard permite visualizar todas as entregas em tempo real em um mapa interativo. Você pode filtrar por status (pendente, em trânsito, entregue), por motoboy, por período ou por estabelecimento. O sistema suporta visualização de múltiplas entregas simultaneamente, com cores diferentes para cada status. Relatórios consolidados mostram métricas como tempo médio de entrega, taxa de sucesso e desempenho por motoboy ou região.",
     },
   ];
 
@@ -269,7 +285,7 @@ export default function LandingPage() {
               <div className="text-xs sm:text-sm text-slate-400">Rastreável</div>
             </div>
             <div className="p-3 sm:p-4 bg-slate-900/50 border border-slate-800 rounded-xl backdrop-blur-sm">
-              <div className="text-2xl sm:text-3xl font-bold text-orange-500 mb-1">24/7</div>
+              <div className="text-2xl sm:text-3xl font-bold text-orange-500 mb-1">15/12</div>
               <div className="text-xs sm:text-sm text-slate-400">Disponível</div>
             </div>
             <div className="p-3 sm:p-4 bg-slate-900/50 border border-slate-800 rounded-xl backdrop-blur-sm">
