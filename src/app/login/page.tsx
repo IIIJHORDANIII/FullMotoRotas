@@ -13,16 +13,21 @@ export default function LoginPage() {
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, user } = useAuth();
   const router = useRouter();
   const { showToast } = useToast();
 
   // Redirecionar se já estiver autenticado
   useEffect(() => {
-    if (isAuthenticated) {
-      router.replace("/dashboard");
+    if (isAuthenticated && user) {
+      // Redirecionar baseado no role do usuário
+      if (user.role === "MOTOBOY") {
+        router.replace("/motoboy/dashboard");
+      } else {
+        router.replace("/dashboard");
+      }
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, user, router]);
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -70,7 +75,7 @@ export default function LoginPage() {
     try {
       await login(email, password);
       showToast("Login realizado com sucesso!", "success");
-      router.replace("/dashboard");
+      // O redirecionamento será feito pelo useEffect quando o user for atualizado
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Falha ao fazer login";
       showToast(message, "error");

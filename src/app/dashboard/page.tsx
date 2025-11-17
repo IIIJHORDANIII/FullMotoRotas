@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import AppLayout from "@/components/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { RoleProtectedRoute } from "@/components/RoleProtectedRoute";
 import { useToast } from "@/components/Toast";
 import { api } from "@/lib/api";
 import Link from "next/link";
@@ -135,7 +136,8 @@ export default function DashboardPage() {
 
   return (
     <ProtectedRoute>
-      <AppLayout>
+      <RoleProtectedRoute allowedRoles={["ADMIN", "ESTABLISHMENT"]}>
+        <AppLayout>
         <div className="relative h-full flex flex-col">
           {/* Header com estatísticas */}
           <div className="p-4 sm:p-6 border-b border-slate-800 bg-slate-900/50">
@@ -361,6 +363,7 @@ export default function DashboardPage() {
           </aside>
         </div>
       </AppLayout>
+      </RoleProtectedRoute>
     </ProtectedRoute>
   );
 }

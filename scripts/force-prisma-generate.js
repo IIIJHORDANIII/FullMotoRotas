@@ -115,26 +115,26 @@ fs.mkdirSync(generatedPrismaPath, { recursive: true });
 const indexTsPath = path.join(generatedPrismaPath, "index.ts");
 const enumsTsPath = path.join(generatedPrismaPath, "enums.ts");
 
-const indexTsContent = `/* Ponte para o Prisma Client gerado. */
-export * from "@prisma/client";
-export { Prisma } from "@prisma/client";
-export type { Prisma as PrismaNamespace } from "@prisma/client";
-`;
+// Não criar index.ts - usar diretamente o index.js gerado pelo Prisma
+const indexTsContent = null;
 
-const enumsTsContent = `/* Reexporta enums do Prisma Client (Data Proxy). */
+const enumsTsContent = `/* Reexporta enums do Prisma Client gerado localmente. */
+// Re-export enums diretamente do módulo gerado pelo Prisma
 export {
   Role,
-  type Role as RoleType,
   EstablishmentPlan,
-  type EstablishmentPlan as EstablishmentPlanType,
   DeliveryStatus,
-  type DeliveryStatus as DeliveryStatusType,
   AssignmentStatus,
+  type Role as RoleType,
+  type EstablishmentPlan as EstablishmentPlanType,
+  type DeliveryStatus as DeliveryStatusType,
   type AssignmentStatus as AssignmentStatusType,
-} from "@prisma/client";
+} from "./index.js";
 `;
 
-fs.writeFileSync(indexTsPath, indexTsContent, "utf8");
+if (indexTsContent) {
+  fs.writeFileSync(indexTsPath, indexTsContent, "utf8");
+}
 fs.writeFileSync(enumsTsPath, enumsTsContent, "utf8");
 console.log("✓ Arquivos bridge atualizados em src/generated/prisma");
 

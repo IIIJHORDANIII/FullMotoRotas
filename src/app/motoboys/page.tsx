@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import AppLayout from "@/components/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { RoleProtectedRoute } from "@/components/RoleProtectedRoute";
 import { useToast } from "@/components/Toast";
 import { api } from "@/lib/api";
 
@@ -99,7 +100,8 @@ export default function MotoboysPage() {
 
   return (
     <ProtectedRoute>
-      <AppLayout>
+      <RoleProtectedRoute allowedRoles={["ADMIN", "ESTABLISHMENT"]}>
+        <AppLayout>
         <div className="p-4 sm:p-6 max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-4 sm:mb-6">
@@ -309,6 +311,7 @@ export default function MotoboysPage() {
           )}
         </div>
       </AppLayout>
+      </RoleProtectedRoute>
     </ProtectedRoute>
   );
 }

@@ -124,7 +124,12 @@ export default function RegisterPage() {
       });
 
       showToast("Conta criada com sucesso! 🎉", "success");
-      router.replace("/dashboard");
+      // Redirecionar baseado no role
+      if (role === "MOTOBOY") {
+        router.replace("/motoboy/dashboard");
+      } else {
+        router.replace("/dashboard");
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Falha ao criar conta";
       showToast(message, "error");

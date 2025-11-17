@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import AppLayout from "@/components/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { RoleProtectedRoute } from "@/components/RoleProtectedRoute";
 import { useToast } from "@/components/Toast";
 import { api } from "@/lib/api";
 import Link from "next/link";
@@ -163,7 +164,8 @@ export default function InboxPage() {
 
   return (
     <ProtectedRoute>
-      <AppLayout>
+      <RoleProtectedRoute allowedRoles={["MOTOBOY"]}>
+        <AppLayout>
         <div className="p-6 max-w-5xl mx-auto">
           {/* Header */}
           <div className="mb-6">
@@ -341,6 +343,7 @@ export default function InboxPage() {
           )}
         </div>
       </AppLayout>
+      </RoleProtectedRoute>
     </ProtectedRoute>
   );
 }

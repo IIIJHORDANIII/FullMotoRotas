@@ -14,7 +14,8 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-  { href: "/dashboard", label: "Interface", icon: "🏠", roles: ["ADMIN", "ESTABLISHMENT"] },
+  { href: "/dashboard", label: "Dashboard", icon: "🏠", roles: ["ADMIN", "ESTABLISHMENT"] },
+  { href: "/motoboy/dashboard", label: "Dashboard", icon: "🏠", roles: ["MOTOBOY"] },
   { href: "/orders", label: "Pedidos", icon: "📦", roles: ["ADMIN", "ESTABLISHMENT"] },
   { href: "/motoboys", label: "Motoboys", icon: "🛵", roles: ["ADMIN", "ESTABLISHMENT"] },
   { href: "/reports", label: "Relatório", icon: "📈", roles: ["ADMIN"] },
