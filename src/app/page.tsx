@@ -194,27 +194,27 @@ export default function LandingPage() {
       <div className="fixed bottom-0 right-1/4 w-96 h-96 bg-orange-500/5 rounded-full blur-3xl animate-pulse-slow" />
 
       {/* Navigation */}
-      <nav className="relative z-50 container mx-auto px-6 py-6 flex items-center justify-between">
+      <nav className="relative z-50 container mx-auto px-4 sm:px-6 py-4 sm:py-6 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Image
             src="/Logo.png"
             alt="MOTO ROTAS"
             width={120}
             height={40}
-            className="h-10 w-auto"
+            className="h-8 sm:h-10 w-auto"
             priority
           />
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           <button
             onClick={() => router.push("/login")}
-            className="px-6 py-2 text-slate-300 hover:text-slate-100 font-medium transition-colors"
+            className="px-3 sm:px-6 py-1.5 sm:py-2 text-sm sm:text-base text-slate-300 hover:text-slate-100 font-medium transition-colors"
           >
             Entrar
           </button>
           <button
             onClick={() => router.push("/register")}
-            className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition-all shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40"
+            className="px-3 sm:px-6 py-1.5 sm:py-2 text-sm sm:text-base bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition-all shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40"
           >
             Cadastrar-se
           </button>
@@ -222,16 +222,17 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative z-10 container mx-auto px-6 py-20 lg:py-32">
+      <section className="relative z-10 container mx-auto px-4 sm:px-6 py-12 sm:py-20 lg:py-32">
         <div className="max-w-5xl mx-auto text-center">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 rounded-full border border-orange-500/20 bg-orange-500/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-orange-300 mb-8 animate-fade-in">
+          <div className="inline-flex items-center gap-2 rounded-full border border-orange-500/20 bg-orange-500/10 px-3 sm:px-4 py-1 sm:py-1.5 text-xs font-semibold uppercase tracking-wider text-orange-300 mb-6 sm:mb-8 animate-fade-in">
             <span className="h-1.5 w-1.5 rounded-full bg-orange-400 animate-pulse" />
-            Plataforma Completa de Gestão de Entregas
+            <span className="hidden sm:inline">Plataforma Completa de Gestão de Entregas</span>
+            <span className="sm:hidden">Gestão de Entregas</span>
           </div>
 
           {/* Headline */}
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6 animate-fade-in">
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl xl:text-7xl font-extrabold tracking-tight mb-4 sm:mb-6 animate-fade-in px-2">
             <span className="bg-gradient-to-r from-orange-400 via-orange-500 to-orange-600 bg-clip-text text-transparent">
               Gerencie suas entregas
             </span>
@@ -240,7 +241,7 @@ export default function LandingPage() {
           </h1>
 
           {/* Subheadline */}
-          <p className="text-xl sm:text-2xl text-slate-300 mb-12 max-w-3xl mx-auto leading-relaxed animate-fade-in">
+          <p className="text-base sm:text-xl lg:text-2xl text-slate-300 mb-8 sm:mb-12 max-w-3xl mx-auto leading-relaxed animate-fade-in px-4">
             Conecte estabelecimentos e motoboys em uma plataforma completa. Rastreamento em tempo real,
             gestão de pedidos, métricas detalhadas e muito mais em um só lugar.
           </p>
@@ -262,35 +263,35 @@ export default function LandingPage() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto animate-fade-in">
-            <div className="p-4 bg-slate-900/50 border border-slate-800 rounded-xl backdrop-blur-sm">
-              <div className="text-3xl font-bold text-orange-500 mb-1">100%</div>
-              <div className="text-sm text-slate-400">Rastreável</div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 max-w-4xl mx-auto animate-fade-in px-4">
+            <div className="p-3 sm:p-4 bg-slate-900/50 border border-slate-800 rounded-xl backdrop-blur-sm">
+              <div className="text-2xl sm:text-3xl font-bold text-orange-500 mb-1">100%</div>
+              <div className="text-xs sm:text-sm text-slate-400">Rastreável</div>
             </div>
-            <div className="p-4 bg-slate-900/50 border border-slate-800 rounded-xl backdrop-blur-sm">
-              <div className="text-3xl font-bold text-orange-500 mb-1">24/7</div>
-              <div className="text-sm text-slate-400">Disponível</div>
+            <div className="p-3 sm:p-4 bg-slate-900/50 border border-slate-800 rounded-xl backdrop-blur-sm">
+              <div className="text-2xl sm:text-3xl font-bold text-orange-500 mb-1">24/7</div>
+              <div className="text-xs sm:text-sm text-slate-400">Disponível</div>
             </div>
-            <div className="p-4 bg-slate-900/50 border border-slate-800 rounded-xl backdrop-blur-sm">
-              <div className="text-3xl font-bold text-orange-500 mb-1">API</div>
-              <div className="text-sm text-slate-400">Integrável</div>
+            <div className="p-3 sm:p-4 bg-slate-900/50 border border-slate-800 rounded-xl backdrop-blur-sm">
+              <div className="text-2xl sm:text-3xl font-bold text-orange-500 mb-1">API</div>
+              <div className="text-xs sm:text-sm text-slate-400">Integrável</div>
             </div>
-            <div className="p-4 bg-slate-900/50 border border-slate-800 rounded-xl backdrop-blur-sm">
-              <div className="text-3xl font-bold text-orange-500 mb-1">RBAC</div>
-              <div className="text-sm text-slate-400">Seguro</div>
+            <div className="p-3 sm:p-4 bg-slate-900/50 border border-slate-800 rounded-xl backdrop-blur-sm">
+              <div className="text-2xl sm:text-3xl font-bold text-orange-500 mb-1">RBAC</div>
+              <div className="text-xs sm:text-sm text-slate-400">Seguro</div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="relative z-10 py-20 lg:py-28 border-t border-slate-800">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl sm:text-5xl font-bold text-slate-50 mb-4">
+      <section className="relative z-10 py-12 sm:py-20 lg:py-28 border-t border-slate-800">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="text-center mb-8 sm:mb-16">
+            <h2 className="text-2xl sm:text-4xl lg:text-5xl font-bold text-slate-50 mb-3 sm:mb-4 px-2">
               Recursos que <span className="text-orange-500">impulsionam</span> seu negócio
             </h2>
-            <p className="text-xl text-slate-400 max-w-2xl mx-auto">
+            <p className="text-base sm:text-xl text-slate-400 max-w-2xl mx-auto px-4">
               Tudo que você precisa para gerenciar entregas de forma eficiente e profissional
             </p>
           </div>

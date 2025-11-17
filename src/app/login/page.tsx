@@ -88,22 +88,22 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-4">
       <div className="w-full max-w-md animate-fade-in">
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-4">
+        <div className="text-center mb-6 sm:mb-8">
+          <div className="flex items-center justify-center gap-2 mb-3 sm:mb-4">
             <Image
               src="/Logo.png"
               alt="MOTO ROTAS"
               width={150}
               height={50}
-              className="h-12 w-auto mx-auto"
+              className="h-10 sm:h-12 w-auto mx-auto"
               priority
             />
           </div>
-          <h1 className="text-3xl font-bold text-slate-50 mb-2">Bem-vindo de volta!</h1>
-          <p className="text-slate-400">Acesse sua conta para continuar</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-50 mb-2">Bem-vindo de volta!</h1>
+          <p className="text-sm sm:text-base text-slate-400">Acesse sua conta para continuar</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5 bg-slate-900/50 border border-slate-800 rounded-2xl p-8 shadow-xl">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5 bg-slate-900/50 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-2">
               E-mail

@@ -100,13 +100,13 @@ export default function MotoboysPage() {
   return (
     <ProtectedRoute>
       <AppLayout>
-        <div className="p-6 max-w-7xl mx-auto">
+        <div className="p-4 sm:p-6 max-w-7xl mx-auto">
           {/* Header */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-4">
+          <div className="mb-4 sm:mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4">
               <div>
-                <h1 className="text-3xl font-bold text-slate-50 mb-1">Motoboys</h1>
-                <p className="text-sm text-slate-400">
+                <h1 className="text-2xl sm:text-3xl font-bold text-slate-50 mb-1">Motoboys</h1>
+                <p className="text-xs sm:text-sm text-slate-400">
                   {filteredMotoboys.length} de {motoboys.length} motoboys cadastrados
                 </p>
               </div>
@@ -114,12 +114,13 @@ export default function MotoboysPage() {
                 <button
                   onClick={() => loadMotoboys(true)}
                   disabled={refreshing}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="px-3 sm:px-4 py-2 text-sm sm:text-base bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2 self-start sm:self-auto"
                 >
                   {refreshing ? (
                     <>
                       <span className="animate-spin">⟳</span>
-                      <span>Atualizando...</span>
+                      <span className="hidden sm:inline">Atualizando...</span>
+                      <span className="sm:hidden">Atualizando</span>
                     </>
                   ) : (
                     <>
@@ -132,36 +133,36 @@ export default function MotoboysPage() {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
-                <div className="text-sm text-slate-400 mb-1">Total</div>
-                <div className="text-2xl font-bold text-slate-50">{stats.total}</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
+              <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-2 sm:p-4">
+                <div className="text-xs sm:text-sm text-slate-400 mb-1">Total</div>
+                <div className="text-lg sm:text-2xl font-bold text-slate-50">{stats.total}</div>
               </div>
-              <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
-                <div className="text-sm text-green-300 mb-1">Disponíveis</div>
-                <div className="text-2xl font-bold text-green-300">{stats.available}</div>
+              <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-2 sm:p-4">
+                <div className="text-xs sm:text-sm text-green-300 mb-1">Disponíveis</div>
+                <div className="text-lg sm:text-2xl font-bold text-green-300">{stats.available}</div>
               </div>
-              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
-                <div className="text-sm text-amber-300 mb-1">Indisponíveis</div>
-                <div className="text-2xl font-bold text-amber-300">{stats.unavailable}</div>
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-2 sm:p-4">
+                <div className="text-xs sm:text-sm text-amber-300 mb-1">Indisponíveis</div>
+                <div className="text-lg sm:text-2xl font-bold text-amber-300">{stats.unavailable}</div>
               </div>
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-                <div className="text-sm text-blue-300 mb-1">Ativos</div>
-                <div className="text-2xl font-bold text-blue-300">{stats.active}</div>
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-2 sm:p-4">
+                <div className="text-xs sm:text-sm text-blue-300 mb-1">Ativos</div>
+                <div className="text-lg sm:text-2xl font-bold text-blue-300">{stats.active}</div>
               </div>
             </div>
 
             {/* Toolbar */}
-            <div className="flex flex-wrap gap-4">
-              <div className="flex-1 min-w-[200px] relative">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <div className="flex-1 relative">
                 <input
                   type="search"
                   placeholder="Buscar por nome, email, CPF..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full px-4 py-2 pl-10 bg-slate-900 border border-slate-800 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
+                  className="w-full px-3 sm:px-4 py-2 pl-9 sm:pl-10 text-sm sm:text-base bg-slate-900 border border-slate-800 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
                 />
-                <span className="absolute left-3 top-2.5 text-slate-500">🔍</span>
+                <span className="absolute left-2.5 sm:left-3 top-2.5 text-slate-500">🔍</span>
               </div>
 
               <select
@@ -169,7 +170,7 @@ export default function MotoboysPage() {
                 onChange={(e) =>
                   setAvailabilityFilter(e.target.value as "all" | "available" | "unavailable")
                 }
-                className="px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
+                className="px-3 sm:px-4 py-2 text-sm sm:text-base bg-slate-900 border border-slate-800 rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
               >
                 <option value="all">Todos</option>
                 <option value="available">Disponíveis</option>

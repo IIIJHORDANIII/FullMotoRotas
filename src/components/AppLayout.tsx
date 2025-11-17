@@ -102,38 +102,40 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       {/* Conteúdo */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Topbar */}
-        <header className="bg-slate-900 border-b border-slate-800 px-4 py-4 flex items-center justify-between">
+        <header className="bg-slate-900 border-b border-slate-800 px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between gap-2">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="lg:hidden p-2 text-slate-300 hover:text-slate-100"
+            className="lg:hidden p-2 text-slate-300 hover:text-slate-100 text-xl"
             aria-label="Abrir menu"
           >
             ☰
           </button>
 
-          <div className="flex-1 max-w-md mx-4">
+          <div className="flex-1 max-w-md mx-2 sm:mx-4 min-w-0">
             <input
               type="search"
-              placeholder="Buscar pedido, cliente, endereço…"
-              className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              placeholder="Buscar…"
+              className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base bg-slate-950 border border-slate-800 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <Link
               href="/tracking"
-              className="px-4 py-2 text-sm text-slate-300 hover:text-slate-100 border border-slate-800 rounded-lg hover:border-slate-700 transition-colors"
+              className="hidden sm:flex px-3 sm:px-4 py-2 text-xs sm:text-sm text-slate-300 hover:text-slate-100 border border-slate-800 rounded-lg hover:border-slate-700 transition-colors whitespace-nowrap"
             >
-              Rastrear pedido
+              Rastrear
             </Link>
 
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <div className="text-sm text-slate-400">Olá,</div>
-                <div className="text-sm font-semibold text-slate-200">{user?.email || "Visitante"}</div>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="hidden sm:block text-right">
+                <div className="text-xs sm:text-sm text-slate-400">Olá,</div>
+                <div className="text-xs sm:text-sm font-semibold text-slate-200 truncate max-w-[120px]">
+                  {user?.email || "Visitante"}
+                </div>
               </div>
-              <div className="w-10 h-10 rounded-full bg-orange-500/20 border border-orange-500/30 flex items-center justify-center">
-                <span className="text-orange-300">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-orange-500/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
+                <span className="text-orange-300 text-sm sm:text-base">
                   {user?.email.charAt(0).toUpperCase() || "?"}
                 </span>
               </div>

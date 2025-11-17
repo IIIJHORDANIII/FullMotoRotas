@@ -115,25 +115,26 @@ export default function OrdersPage() {
   return (
     <ProtectedRoute>
       <AppLayout>
-        <div className="p-6 max-w-7xl mx-auto">
+        <div className="p-4 sm:p-6 max-w-7xl mx-auto">
           {/* Header */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-4">
+          <div className="mb-4 sm:mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4">
               <div>
-                <h1 className="text-3xl font-bold text-slate-50 mb-1">Pedidos</h1>
-                <p className="text-sm text-slate-400">
+                <h1 className="text-2xl sm:text-3xl font-bold text-slate-50 mb-1">Pedidos</h1>
+                <p className="text-xs sm:text-sm text-slate-400">
                   {filteredOrders.length} de {orders.length} pedidos
                 </p>
               </div>
               <button
                 onClick={() => loadOrders(true)}
                 disabled={refreshing}
-                className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+                className="px-3 sm:px-4 py-2 text-sm sm:text-base bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2 self-start sm:self-auto"
               >
                 {refreshing ? (
                   <>
                     <span className="animate-spin">⟳</span>
-                    <span>Atualizando...</span>
+                    <span className="hidden sm:inline">Atualizando...</span>
+                    <span className="sm:hidden">Atualizando</span>
                   </>
                 ) : (
                   <>
@@ -145,22 +146,22 @@ export default function OrdersPage() {
             </div>
 
             {/* Toolbar */}
-            <div className="flex flex-wrap gap-4">
-              <div className="flex-1 min-w-[200px] relative">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <div className="flex-1 relative">
                 <input
                   type="search"
                   placeholder="Buscar por cliente, endereço, código..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full px-4 py-2 pl-10 bg-slate-900 border border-slate-800 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
+                  className="w-full px-3 sm:px-4 py-2 pl-9 sm:pl-10 text-sm sm:text-base bg-slate-900 border border-slate-800 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
                 />
-                <span className="absolute left-3 top-2.5 text-slate-500">🔍</span>
+                <span className="absolute left-2.5 sm:left-3 top-2.5 text-slate-500">🔍</span>
               </div>
 
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
+                className="px-3 sm:px-4 py-2 text-sm sm:text-base bg-slate-900 border border-slate-800 rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
               >
                 <option value="">Todos os status</option>
                 {Object.entries(statusConfig).map(([value, config]) => (
