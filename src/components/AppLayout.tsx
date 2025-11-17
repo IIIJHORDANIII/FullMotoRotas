@@ -2,6 +2,7 @@
 
 import { ReactNode, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -47,9 +48,13 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         <div className="h-full flex flex-col">
           <div className="p-6 border-b border-slate-800">
             <div className="flex items-center gap-2">
-              <span className="text-xl font-bold text-orange-400">MOTO</span>
-              <span className="text-xl">🚛</span>
-              <span className="text-xl font-bold text-orange-400">ROTAS</span>
+              <Image
+                src="/Logo.png"
+                alt="MOTO ROTAS"
+                width={100}
+                height={33}
+                className="h-8 w-auto"
+              />
             </div>
           </div>
 

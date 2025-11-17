@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/Toast";
 import Link from "next/link";
@@ -89,9 +90,14 @@ export default function LoginPage() {
       <div className="w-full max-w-md animate-fade-in">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
-            <span className="text-3xl font-bold text-orange-400">MOTO</span>
-            <span className="text-3xl">🚛</span>
-            <span className="text-3xl font-bold text-orange-400">ROTAS</span>
+            <Image
+              src="/Logo.png"
+              alt="MOTO ROTAS"
+              width={150}
+              height={50}
+              className="h-12 w-auto mx-auto"
+              priority
+            />
           </div>
           <h1 className="text-3xl font-bold text-slate-50 mb-2">Bem-vindo de volta!</h1>
           <p className="text-slate-400">Acesse sua conta para continuar</p>

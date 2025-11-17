@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export default function LandingPage() {
   const router = useRouter();
@@ -195,9 +196,14 @@ export default function LandingPage() {
       {/* Navigation */}
       <nav className="relative z-50 container mx-auto px-6 py-6 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-2xl font-bold text-orange-500">MOTO</span>
-          <span className="text-2xl">🚛</span>
-          <span className="text-2xl font-bold text-orange-500">ROTAS</span>
+          <Image
+            src="/Logo.png"
+            alt="MOTO ROTAS"
+            width={120}
+            height={40}
+            className="h-10 w-auto"
+            priority
+          />
         </div>
         <div className="flex items-center gap-4">
           <button
@@ -478,9 +484,13 @@ export default function LandingPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <span className="text-xl font-bold text-orange-500">MOTO</span>
-              <span className="text-xl">🚛</span>
-              <span className="text-xl font-bold text-orange-500">ROTAS</span>
+              <Image
+                src="/Logo.png"
+                alt="MOTO ROTAS"
+                width={100}
+                height={33}
+                className="h-8 w-auto"
+              />
             </div>
             <p className="text-sm text-slate-400">
               Plataforma completa para gestão de entregas, conectando estabelecimentos e motoboys.
