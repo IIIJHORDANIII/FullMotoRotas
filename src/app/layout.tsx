@@ -17,11 +17,6 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "Motorotas - Gestão de Entregas",
   description: "Plataforma de gestão de entregas para estabelecimentos e motoboys",
-  icons: {
-    icon: "/Logo.png",
-    shortcut: "/Logo.png",
-    apple: "/Logo.png",
-  },
 };
 
 export default function RootLayout({
