@@ -59,7 +59,35 @@ export async function GET(request: NextRequest) {
     if (error instanceof AppError) {
       return errorResponse(error);
     }
-    console.error(error);
+    
+    // Log detalhado do erro
+    console.error("[API Motoboys] ❌ Erro ao listar motoboys:", error);
+    if (error instanceof Error) {
+      console.error("[API Motoboys] Mensagem:", error.message);
+      console.error("[API Motoboys] Stack:", error.stack);
+      
+      // Verificar se é erro de conexão com banco de dados
+      const errorMsg = error.message.toLowerCase();
+      if (
+        errorMsg.includes("connect") ||
+        errorMsg.includes("econnrefused") ||
+        errorMsg.includes("enotfound") ||
+        errorMsg.includes("timeout") ||
+        errorMsg.includes("authentication failed") ||
+        errorMsg.includes("postgres") ||
+        errorMsg.includes("prisma") ||
+        errorMsg.includes("database")
+      ) {
+        return errorResponse(
+          new AppError(
+            "Erro ao conectar com o banco de dados. Verifique a configuração da DATABASE_URL.",
+            500,
+            "DATABASE_CONNECTION_ERROR"
+          )
+        );
+      }
+    }
+    
     return errorResponse(new AppError("Falha ao listar motoboys", 500));
   }
 }

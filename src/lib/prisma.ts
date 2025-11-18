@@ -42,11 +42,13 @@ function createPrismaClient(): PrismaClient {
       log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
     });
     console.log("[Prisma] ✓ PrismaClient criado com sucesso");
+    console.log("[Prisma] Runtime:", process.env.PRISMA_CLIENT_USE_DATAPROXY === "true" ? "Data Proxy" : "Standard");
     return client;
   } catch (error) {
     console.error("[Prisma] ❌ Erro ao criar PrismaClient:", error);
     if (error instanceof Error) {
       console.error("[Prisma] Mensagem:", error.message);
+      console.error("[Prisma] Stack:", error.stack);
     }
     throw error;
   }
@@ -61,13 +63,32 @@ if (process.env.NODE_ENV !== "production") {
 // Função auxiliar para testar conexão
 export async function testPrismaConnection(): Promise<{ success: boolean; error?: string }> {
   try {
-    await prisma.$connect();
+    // Para Data Proxy, não usar $connect() explicitamente
+    // A conexão será feita automaticamente na primeira query
     await prisma.$queryRaw`SELECT 1`;
-    await prisma.$disconnect();
     return { success: true };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
     console.error("[Prisma] ❌ Erro ao testar conexão:", errorMessage);
+    
+    if (error instanceof Error) {
+      const errorMsg = errorMessage.toLowerCase();
+      if (
+        errorMsg.includes("connect") ||
+        errorMsg.includes("econnrefused") ||
+        errorMsg.includes("enotfound") ||
+        errorMsg.includes("timeout") ||
+        errorMsg.includes("authentication") ||
+        errorMsg.includes("api key") ||
+        errorMsg.includes("invalid url")
+      ) {
+        return {
+          success: false,
+          error: "Erro de conexão com o Prisma Data Proxy. Verifique se a DATABASE_URL está correta e se a API key é válida.",
+        };
+      }
+    }
+    
     return { success: false, error: errorMessage };
   }
 }
