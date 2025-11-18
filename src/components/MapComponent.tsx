@@ -48,14 +48,34 @@ export default function MapComponent({ motoboys, center = [-23.5505, -46.6333], 
       containerRef.current.style.width = "100%";
     }
 
+    // Calcular centro inicial baseado nos motoboys, se houver
+    let initialCenter = center;
+    let initialZoom = zoom;
+    
+    const motoboysWithLocation = motoboys.filter((m) => m.currentLat && m.currentLng);
+    if (motoboysWithLocation.length > 0) {
+      if (motoboysWithLocation.length === 1) {
+        initialCenter = [motoboysWithLocation[0].currentLat!, motoboysWithLocation[0].currentLng!];
+        initialZoom = 15;
+      } else {
+        const bounds = L.latLngBounds(
+          motoboysWithLocation.map((m) => [m.currentLat!, m.currentLng!] as [number, number])
+        );
+        if (bounds.isValid()) {
+          initialCenter = [bounds.getCenter().lat, bounds.getCenter().lng];
+          initialZoom = 12;
+        }
+      }
+    }
+
     // Aguardar um pouco para garantir que o DOM está pronto
     const timer = setTimeout(() => {
       if (!containerRef.current || mapRef.current) return;
 
       // Criar mapa com tema escuro
       const map = L.map(containerRef.current, {
-        center,
-        zoom,
+        center: initialCenter,
+        zoom: initialZoom,
         zoomControl: true,
         attributionControl: true,
       });
@@ -66,6 +86,18 @@ export default function MapComponent({ motoboys, center = [-23.5505, -46.6333], 
         subdomains: "abcd",
         maxZoom: 19,
       }).addTo(map);
+
+      // Se há motoboys, ajustar bounds após criar o mapa
+      if (motoboysWithLocation.length > 1) {
+        const bounds = L.latLngBounds(
+          motoboysWithLocation.map((m) => [m.currentLat!, m.currentLng!] as [number, number])
+        );
+        if (bounds.isValid() && bounds.getNorth() !== bounds.getSouth() && bounds.getEast() !== bounds.getWest()) {
+          setTimeout(() => {
+            map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+          }, 200);
+        }
+      }
 
       // Invalidar tamanho após um pequeno delay para garantir renderização
       setTimeout(() => {
@@ -83,7 +115,7 @@ export default function MapComponent({ motoboys, center = [-23.5505, -46.6333], 
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [motoboys.length]); // Recriar mapa apenas se o número de motoboys mudar significativamente
 
   // Atualizar marcadores quando motoboys mudarem
   useEffect(() => {
@@ -246,18 +278,48 @@ export default function MapComponent({ motoboys, center = [-23.5505, -46.6333], 
       }
     });
 
-    // Ajustar zoom para mostrar todos os marcadores apenas se houver motoboys
-    if (motoboys.length > 0 && motoboys.some((m) => m.currentLat && m.currentLng)) {
+    // Ajustar zoom e centralizar no conjunto de motoboys sempre que houver pins
+    const motoboysWithLocation = motoboys.filter((m) => m.currentLat && m.currentLng);
+    
+    if (motoboysWithLocation.length > 0) {
       const bounds = L.latLngBounds(
-        motoboys
-          .filter((m) => m.currentLat && m.currentLng)
-          .map((m) => [m.currentLat!, m.currentLng!] as [number, number])
+        motoboysWithLocation.map((m) => [m.currentLat!, m.currentLng!] as [number, number])
       );
-      if (bounds.isValid() && bounds.getNorth() !== bounds.getSouth() && bounds.getEast() !== bounds.getWest()) {
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+      
+      if (bounds.isValid()) {
+        // Pequeno delay para garantir que os marcadores foram adicionados ao mapa
+        setTimeout(() => {
+          if (!mapRef.current) return;
+          
+          if (motoboysWithLocation.length === 1) {
+            // Se há apenas um motoboy, centralizar nele com zoom adequado
+            mapRef.current.setView(
+              [motoboysWithLocation[0].currentLat!, motoboysWithLocation[0].currentLng!], 
+              15,
+              { animate: true, duration: 0.5 }
+            );
+          } else {
+            // Se há múltiplos motoboys, ajustar bounds para mostrar todos
+            if (bounds.getNorth() !== bounds.getSouth() && bounds.getEast() !== bounds.getWest()) {
+              mapRef.current.fitBounds(bounds, { 
+                padding: [50, 50], 
+                maxZoom: 15,
+                animate: true,
+                duration: 0.5
+              });
+            } else {
+              // Se todos estão no mesmo lugar, centralizar com zoom fixo
+              mapRef.current.setView(
+                [bounds.getCenter().lat, bounds.getCenter().lng], 
+                15,
+                { animate: true, duration: 0.5 }
+              );
+            }
+          }
+        }, 100);
       }
     } else {
-      // Garantir que o mapa seja invalidado mesmo sem marcadores
+      // Sem motoboys, manter o centro padrão
       setTimeout(() => {
         if (mapRef.current) {
           mapRef.current.invalidateSize();
