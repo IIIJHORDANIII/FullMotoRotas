@@ -36,11 +36,11 @@ export async function POST(request: NextRequest) {
     return jsonResponse({ message: "Logout realizado com sucesso" });
   } catch (error) {
     // Mesmo se houver erro de autenticação, retornar sucesso para não bloquear o logout
-    if (error instanceof AppError && error.statusCode === 401) {
-      return jsonResponse({ message: "Logout realizado com sucesso" });
-    }
-    
     if (error instanceof AppError) {
+      // Se for erro 401 (não autorizado), ainda assim retornar sucesso para não bloquear logout
+      if (error.status === 401) {
+        return jsonResponse({ message: "Logout realizado com sucesso" });
+      }
       return errorResponse(error);
     }
     
