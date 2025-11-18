@@ -1,6 +1,43 @@
-import { prisma } from "@/lib/prisma";
-import { Role } from "@/generated/prisma/enums";
+// Importar do @prisma/client padrão
+// IMPORTANTE: O Prisma Client deve ser regenerado sem Data Proxy antes de executar este script
+import { PrismaClient, Role } from "@prisma/client";
 import bcrypt from "bcryptjs";
+
+// Para scripts locais, precisamos usar uma URL direta do PostgreSQL
+const directUrl = process.env.DIRECT_DATABASE_URL;
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!directUrl && !databaseUrl) {
+  throw new Error(
+    "DIRECT_DATABASE_URL ou DATABASE_URL não está definida. Configure a string de conexão do banco de dados.\n" +
+    "Para scripts locais, use DIRECT_DATABASE_URL com uma URL direta do PostgreSQL (postgresql://...)"
+  );
+}
+
+// Usar DIRECT_DATABASE_URL se disponível (conexão direta), senão DATABASE_URL
+const finalUrl = directUrl || databaseUrl;
+
+// CRÍTICO: Definir a URL ANTES de importar/criar o Prisma Client
+// O Prisma Client lê DATABASE_URL no momento da importação
+process.env.DATABASE_URL = finalUrl;
+
+// Garantir que Data Proxy está desabilitado
+process.env.PRISMA_CLIENT_USE_DATAPROXY = "false";
+delete process.env.PRISMA_GENERATE_DATAPROXY;
+delete process.env.PRISMA_CLIENT_DATAPROXY;
+
+console.log(`[Script] Usando URL: ${finalUrl.substring(0, Math.min(50, finalUrl.length))}...`);
+console.log(`[Script] Data Proxy desabilitado: ${process.env.PRISMA_CLIENT_USE_DATAPROXY}`);
+
+// Criar Prisma Client - ele usará DATABASE_URL da variável de ambiente
+// IMPORTANTE: O cliente deve ter sido regenerado sem Data Proxy
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: finalUrl,
+    },
+  },
+});
 
 // Coordenadas centrais das cidades
 const CITIES = [
@@ -233,8 +270,7 @@ async function createTestMotoboys() {
     }
     process.exit(1);
   } finally {
-    // Não desconectar se estiver usando o singleton do prisma
-    // await prisma.$disconnect();
+    await prisma.$disconnect();
   }
 }
 
