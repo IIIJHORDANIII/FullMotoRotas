@@ -1,9 +1,7 @@
-import bcryptjs from "bcryptjs";
+import bcrypt from "bcryptjs";
 import jwt, { SignOptions } from "jsonwebtoken";
 import { env } from "@/lib/env";
 
-// Compatibilidade com diferentes formas de importação do bcryptjs
-const bcrypt = bcryptjs.default || bcryptjs;
 const SALT_ROUNDS = 10;
 
 export type JwtPayload = {
