@@ -12,12 +12,51 @@ async function createDefaultAdmin() {
     console.log(`[Bootstrap] Verificando usuário admin: ${DEFAULT_ADMIN_EMAIL}`);
     
     // Verificar conexão com o banco antes de tentar criar usuário
-    // Não usar $connect() pois pode causar problemas - a conexão será feita automaticamente na primeira query
     console.log("[Bootstrap] Prisma Client disponível:", !!prisma);
     
+    // Verificar se DATABASE_URL está configurada
+    if (!process.env.DATABASE_URL) {
+      console.error("[Bootstrap] ❌ DATABASE_URL não está configurada!");
+      throw new Error("DATABASE_URL não está configurada. Configure a variável de ambiente na Vercel.");
+    }
+    
+    // Verificar formato da URL
+    const dbUrl = process.env.DATABASE_URL;
+    const isPrismaProxy = dbUrl.startsWith("prisma://") || dbUrl.startsWith("prisma+");
+    
+    if (!isPrismaProxy) {
+      console.warn("[Bootstrap] ⚠️ DATABASE_URL não parece ser uma URL do Prisma Data Proxy");
+      console.warn("[Bootstrap] Formato esperado: prisma+postgres://YOUR_WORKSPACE.prisma-data.net/?api_key=YOUR_API_KEY");
+      console.warn("[Bootstrap] URL atual começa com:", dbUrl.substring(0, 30) + "...");
+    } else {
+      console.log("[Bootstrap] ✓ DATABASE_URL parece ser uma URL do Prisma Data Proxy");
+    }
+    
     // Tentar uma query simples para verificar conexão
-    await prisma.user.count();
-    console.log("[Bootstrap] ✓ Conectado ao banco de dados");
+    try {
+      await prisma.user.count();
+      console.log("[Bootstrap] ✓ Conectado ao banco de dados");
+    } catch (connectionError) {
+      console.error("[Bootstrap] ❌ Erro ao conectar com o banco de dados:", connectionError);
+      if (connectionError instanceof Error) {
+        console.error("[Bootstrap] Mensagem:", connectionError.message);
+        
+        // Verificar se é erro de formato da URL
+        if (connectionError.message.includes("Invalid URL") || connectionError.message.includes("Invalid connection string")) {
+          throw new Error(
+            "DATABASE_URL inválida. Verifique se está no formato correto: prisma+postgres://YOUR_WORKSPACE.prisma-data.net/?api_key=YOUR_API_KEY"
+          );
+        }
+        
+        // Verificar se é erro de autenticação
+        if (connectionError.message.includes("authentication") || connectionError.message.includes("API key")) {
+          throw new Error(
+            "Erro de autenticação com o Prisma Data Proxy. Verifique se a API key está correta e se o workspace está ativo."
+          );
+        }
+      }
+      throw connectionError;
+    }
 
     const existing = await prisma.user.findUnique({ where: { email: DEFAULT_ADMIN_EMAIL } });
 
