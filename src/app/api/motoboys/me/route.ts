@@ -46,11 +46,12 @@ export async function PATCH(request: NextRequest) {
     const { currentLat, currentLng, isAvailable } = body;
 
     const updateData: {
-      currentLat?: number;
-      currentLng?: number;
+      currentLat?: number | null;
+      currentLng?: number | null;
       isAvailable?: boolean;
     } = {};
 
+    // Permitir definir null para limpar localização
     if (currentLat !== undefined) updateData.currentLat = currentLat;
     if (currentLng !== undefined) updateData.currentLng = currentLng;
     if (isAvailable !== undefined) updateData.isAvailable = isAvailable;

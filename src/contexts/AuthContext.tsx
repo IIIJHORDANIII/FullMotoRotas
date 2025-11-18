@@ -30,7 +30,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    // Chamar API de logout para limpar localização se for motoboy
+    const token = localStorage.getItem("motorotas_token");
+    if (token) {
+      try {
+        await fetch("/api/auth/logout", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      } catch (error) {
+        // Não bloquear logout se houver erro na API
+        console.error("[Auth] Erro ao chamar API de logout:", error);
+      }
+    }
+
+    // Limpar estado local
     setToken(null);
     setUser(null);
     localStorage.removeItem("motorotas_token");

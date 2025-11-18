@@ -10,7 +10,8 @@
     "lint": "next lint",
     "postinstall": "echo '🔧 Executando postinstall...' && PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 PRISMA_SKIP_DOWNLOAD=1 PRISMA_CLIENT_ENGINE_TYPE=library node scripts/force-prisma-generate.js",
     "ensure-admin": "npx tsx scripts/ensure-admin.ts",
-    "create-test-users": "npx tsx scripts/create-test-users.ts"
+    "create-test-users": "npx tsx scripts/create-test-users.ts",
+    "create-test-motoboys": "npx tsx scripts/create-test-motoboys.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.2.1",

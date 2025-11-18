@@ -220,6 +220,26 @@ export default function MotoboyDashboardPage() {
         navigator.geolocation.clearWatch(watchIdRef.current);
         watchIdRef.current = null;
       }
+      
+      // Limpar localização no servidor ao sair da página
+      const token = localStorage.getItem("motorotas_token");
+      if (token) {
+        // Limpar localização de forma assíncrona sem bloquear
+        fetch("/api/motoboys/me", {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            currentLat: null,
+            currentLng: null,
+            isAvailable: false,
+          }),
+        }).catch((err) => {
+          console.error("[Motoboy Dashboard] Erro ao limpar localização:", err);
+        });
+      }
     };
   }, []); // Sem dependências - executar apenas uma vez quando o componente montar
 
