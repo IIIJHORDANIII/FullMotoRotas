@@ -106,14 +106,15 @@ export default function DashboardPage() {
   useEffect(() => {
     loadOrders();
     loadMotoboys();
-    // Auto-refresh a cada 10 segundos para atualizar posições
+    // Auto-refresh a cada 15 segundos para atualizar posições dos motoboys
+    // Isso garante que as localizações atualizadas pelos motoboys apareçam no mapa
     const interval = setInterval(() => {
       loadMotoboys();
       setError(null);
       api.get<Order[]>("/api/orders")
         .then((response) => setOrders(response.data || []))
         .catch((err) => console.error("Erro ao atualizar pedidos:", err));
-    }, 10000);
+    }, 15000); // 15 segundos para sincronizar com atualização dos motoboys (30s / 2)
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

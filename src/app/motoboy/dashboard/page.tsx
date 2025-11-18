@@ -7,6 +7,7 @@ import { RoleProtectedRoute } from "@/components/RoleProtectedRoute";
 import { useToast } from "@/components/Toast";
 import { api } from "@/lib/api";
 import Link from "next/link";
+import MotoboyLocationMap from "@/components/MotoboyLocationMap";
 
 type Order = {
   id: string;
@@ -51,12 +52,24 @@ const assignmentStatusConfig: Record<string, { label: string; color: string; ico
   },
 };
 
+type MotoboyProfile = {
+  id: string;
+  fullName: string;
+  currentLat: number | null;
+  currentLng: number | null;
+  isAvailable: boolean;
+  vehicleType: string;
+};
+
 export default function MotoboyDashboardPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [processing, setProcessing] = useState<Set<string>>(new Set());
+  const [motoboyProfile, setMotoboyProfile] = useState<MotoboyProfile | null>(null);
+  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
   const { showToast } = useToast();
 
   const loadAssignments = useCallback(async (shouldShowToast = false) => {
@@ -79,14 +92,106 @@ export default function MotoboyDashboardPage() {
     }
   }, [showToast]);
 
+  // Carregar perfil do motoboy
+  const loadMotoboyProfile = useCallback(async () => {
+    try {
+      const response = await api.get<MotoboyProfile>("/api/motoboys/me");
+      setMotoboyProfile(response.data);
+      
+      // Se já tem localização salva, usar ela
+      if (response.data.currentLat && response.data.currentLng) {
+        setLocation({
+          lat: response.data.currentLat,
+          lng: response.data.currentLng,
+        });
+      }
+    } catch (err) {
+      console.error("Erro ao carregar perfil do motoboy:", err);
+    }
+  }, []);
+
+  // Atualizar localização no servidor (com throttling)
+  const updateLocation = useCallback(async (lat: number, lng: number) => {
+    try {
+      await api.patch("/api/motoboys/me", {
+        currentLat: lat,
+        currentLng: lng,
+      });
+      if (motoboyProfile) {
+        setMotoboyProfile({
+          ...motoboyProfile,
+          currentLat: lat,
+          currentLng: lng,
+        });
+      }
+    } catch (err) {
+      console.error("Erro ao atualizar localização:", err);
+    }
+  }, [motoboyProfile]);
+
+  // Obter geolocalização do navegador
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setLocationError("Geolocalização não suportada pelo navegador");
+      return;
+    }
+
+    let lastUpdateTime = 0;
+    const UPDATE_INTERVAL = 30000; // Atualizar no servidor a cada 30 segundos
+
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        const now = Date.now();
+        
+        // Sempre atualizar o estado local para o mapa
+        setLocation({ lat: latitude, lng: longitude });
+        setLocationError(null);
+        
+        // Atualizar no servidor apenas a cada intervalo
+        if (now - lastUpdateTime >= UPDATE_INTERVAL) {
+          lastUpdateTime = now;
+          updateLocation(latitude, longitude);
+        }
+      },
+      (error) => {
+        let message = "Erro ao obter localização";
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            message = "Permissão de localização negada. Por favor, permita o acesso à localização.";
+            break;
+          case error.POSITION_UNAVAILABLE:
+            message = "Localização indisponível.";
+            break;
+          case error.TIMEOUT:
+            message = "Tempo esgotado ao obter localização.";
+            break;
+        }
+        setLocationError(message);
+        console.error("Erro de geolocalização:", error);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 30000, // Aceitar posição com até 30 segundos
+      }
+    );
+
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+    };
+  }, [updateLocation]);
+
   useEffect(() => {
     loadAssignments();
+    loadMotoboyProfile();
+    
     // Auto-refresh a cada 30 segundos
     const interval = setInterval(() => {
       loadAssignments();
     }, 30000);
     return () => clearInterval(interval);
-  }, [loadAssignments]);
+  }, [loadAssignments, loadMotoboyProfile]);
 
   const handleAccept = async (orderId: string) => {
     setProcessing((prev) => new Set(prev).add(orderId));
@@ -215,6 +320,42 @@ export default function MotoboyDashboardPage() {
                 </div>
               </div>
             </div>
+
+            {/* Mapa com localização */}
+            {location ? (
+              <div className="mb-4 sm:mb-6">
+                <div className="mb-2 sm:mb-3">
+                  <h2 className="text-lg sm:text-xl font-semibold text-slate-50 mb-1">Sua Localização</h2>
+                  <p className="text-xs sm:text-sm text-slate-400">
+                    Sua localização está sendo atualizada automaticamente
+                  </p>
+                </div>
+                <div className="h-[300px] sm:h-[400px] lg:h-[500px]">
+                  <MotoboyLocationMap
+                    lat={location.lat}
+                    lng={location.lng}
+                    fullName={motoboyProfile?.fullName || "Você"}
+                  />
+                </div>
+              </div>
+            ) : locationError ? (
+              <div className="mb-4 sm:mb-6 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">⚠️</span>
+                  <div className="flex-1">
+                    <div className="text-sm font-semibold text-yellow-300 mb-1">Localização não disponível</div>
+                    <div className="text-xs text-yellow-200/80">{locationError}</div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="mb-4 sm:mb-6 p-4 bg-slate-800/50 border border-slate-700 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl animate-spin">⟳</span>
+                  <div className="text-sm text-slate-400">Obtendo sua localização...</div>
+                </div>
+              </div>
+            )}
 
             {/* Content */}
             {loading ? (
