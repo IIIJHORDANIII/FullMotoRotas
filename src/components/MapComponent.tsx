@@ -12,6 +12,7 @@ type MotoboyLocation = {
   isAvailable: boolean;
   vehicleType: string;
   phone?: string;
+  updatedAt?: string;
 };
 
 type MapComponentProps = {
@@ -235,9 +236,11 @@ export default function MapComponent({ motoboys, center = [-23.5505, -46.6333], 
       }
     });
 
-    // Remover marcadores que não existem mais
+    // Remover marcadores apenas se realmente não existem mais na lista
+    // Isso evita que pins desapareçam temporariamente durante atualizações
+    const motoboyIds = new Set(motoboys.map((m) => m.id));
     markers.forEach((marker, id) => {
-      if (!motoboys.find((m) => m.id === id)) {
+      if (!motoboyIds.has(id)) {
         map.removeLayer(marker);
         markers.delete(id);
       }

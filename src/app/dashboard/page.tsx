@@ -40,6 +40,7 @@ type Motoboy = {
   isAvailable: boolean;
   vehicleType: string;
   phone?: string;
+  updatedAt: string;
 };
 
 type OrderStatus = "PENDING" | "ASSIGNED" | "IN_TRANSIT" | "DELIVERED" | "CANCELLED";
@@ -93,10 +94,27 @@ export default function DashboardPage() {
   const loadMotoboys = async () => {
     try {
       const response = await api.get<Motoboy[]>("/api/motoboys");
-      // Filtrar apenas motoboys com localização
-      const motoboysWithLocation = (response.data || []).filter(
-        (m) => m.currentLat !== null && m.currentLng !== null
-      );
+      const allMotoboys = response.data || [];
+      
+      // Considerar um motoboy como "online" se atualizou nos últimos 5 minutos
+      const ONLINE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutos
+      const now = Date.now();
+      
+      // Filtrar motoboys que têm localização E estão online (atualizaram recentemente)
+      // Isso garante que apenas motoboys ativos apareçam no mapa
+      const motoboysWithLocation = allMotoboys.filter((m) => {
+        // Precisa ter localização válida
+        if (!m.currentLat || !m.currentLng) return false;
+        
+        // Verificar se está online (atualizou recentemente)
+        const updatedAt = new Date(m.updatedAt).getTime();
+        const timeSinceUpdate = now - updatedAt;
+        const isOnline = timeSinceUpdate < ONLINE_THRESHOLD_MS;
+        
+        // Manter no mapa apenas se está online (atualizou nos últimos 5 minutos)
+        return isOnline;
+      });
+      
       setMotoboys(motoboysWithLocation);
     } catch (err) {
       console.error("Erro ao carregar motoboys:", err);
@@ -106,15 +124,15 @@ export default function DashboardPage() {
   useEffect(() => {
     loadOrders();
     loadMotoboys();
-    // Auto-refresh a cada 15 segundos para atualizar posições dos motoboys
-    // Isso garante que as localizações atualizadas pelos motoboys apareçam no mapa
+    // Auto-refresh a cada 10 segundos para atualizar posições dos motoboys mais frequentemente
+    // Isso garante que as localizações atualizadas pelos motoboys apareçam no mapa e permaneçam visíveis
     const interval = setInterval(() => {
       loadMotoboys();
       setError(null);
       api.get<Order[]>("/api/orders")
         .then((response) => setOrders(response.data || []))
         .catch((err) => console.error("Erro ao atualizar pedidos:", err));
-    }, 15000); // 15 segundos para sincronizar com atualização dos motoboys (30s / 2)
+    }, 10000); // 10 segundos para manter os pins visíveis enquanto o motoboy estiver online
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

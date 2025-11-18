@@ -40,7 +40,22 @@ export async function GET(request: NextRequest) {
     await requireAuth(request, [Role.ADMIN, Role.ESTABLISHMENT]);
 
     const motoboys = await prisma.motoboyProfile.findMany({
-      include: {
+      select: {
+        id: true,
+        fullName: true,
+        cpf: true,
+        cnhNumber: true,
+        cnhCategory: true,
+        vehicleType: true,
+        phone: true,
+        isAvailable: true,
+        currentLat: true,
+        currentLng: true,
+        workSchedule: true,
+        verifiedAt: true,
+        hiredAt: true,
+        createdAt: true,
+        updatedAt: true,
         user: { select: { email: true, isActive: true } },
         _count: { select: { assignments: true } },
       },
