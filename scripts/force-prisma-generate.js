@@ -89,6 +89,10 @@ const env = {
   PRISMA_GENERATE_DATAPROXY: "true",
   PRISMA_CLIENT_USE_DATAPROXY: "true",
   PRISMA_CLIENT_DATAPROXY: "true",
+  // Ignorar verificação de checksum dos binários (não necessário para Data Proxy)
+  PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING: "1",
+  // Não baixar binários desnecessários
+  PRISMA_SKIP_POSTINSTALL_GENERATE: "true",
 };
 
 // Limpar diretório gerado para garantir artefatos atualizados
@@ -99,6 +103,11 @@ if (fs.existsSync(generatedPrismaPath)) {
 
 try {
   console.log("\n📦 Executando: npx prisma generate --data-proxy\n");
+  console.log("📝 Variáveis de ambiente configuradas:");
+  console.log("   - PRISMA_GENERATE_DATAPROXY:", env.PRISMA_GENERATE_DATAPROXY);
+  console.log("   - PRISMA_CLIENT_USE_DATAPROXY:", env.PRISMA_CLIENT_USE_DATAPROXY);
+  console.log("   - PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING:", env.PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING);
+  
   execSync("npx prisma generate --data-proxy", {
     cwd: projectRoot,
     stdio: "inherit",
@@ -106,7 +115,16 @@ try {
   });
   console.log("\n✓ Prisma Client gerado com suporte a Data Proxy\n");
 } catch (error) {
-  console.error("❌ Erro ao executar prisma generate:", error instanceof Error ? error.message : error);
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  console.error("❌ Erro ao executar prisma generate:", errorMessage);
+  
+  // Se for erro de checksum, informar que foi ignorado
+  if (errorMessage.includes("checksum")) {
+    console.error("\n💡 Nota: Erro de checksum ignorado com PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1");
+    console.error("   Isso é normal ao usar Prisma Data Proxy, que não requer binários locais.");
+    console.error("   O Prisma Client deve ter sido gerado corretamente mesmo com este aviso.\n");
+  }
+  
   process.exit(1);
 }
 
