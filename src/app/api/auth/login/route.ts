@@ -47,11 +47,25 @@ export async function POST(request: NextRequest) {
     if (!process.env.DATABASE_URL) {
       console.error("[Login] ❌ DATABASE_URL não está configurada!");
       return errorResponse(
-        new AppError("DATABASE_URL não está configurada", 500, "DATABASE_URL_MISSING")
+        new AppError(
+          "DATABASE_URL não está configurada. Configure a variável de ambiente DATABASE_URL com a URL do Prisma Data Proxy (prisma+postgres://...).",
+          500,
+          "DATABASE_URL_MISSING"
+        )
       );
     }
     
-    console.log("[Login] DATABASE_URL configurada:", process.env.DATABASE_URL.substring(0, 30) + "...");
+    // Verificar formato da URL
+    const dbUrl = process.env.DATABASE_URL;
+    const isPrismaProxy = dbUrl.startsWith("prisma://") || dbUrl.startsWith("prisma+");
+    
+    console.log("[Login] DATABASE_URL configurada:", dbUrl.substring(0, 40) + "...");
+    console.log("[Login] É Prisma Data Proxy?", isPrismaProxy);
+    
+    if (!isPrismaProxy) {
+      console.warn("[Login] ⚠️ DATABASE_URL não parece ser uma URL do Prisma Data Proxy");
+      console.warn("[Login] Formato esperado: prisma+postgres://... ou prisma://...");
+    }
     
     try {
       await ensureBootstrap();
@@ -148,7 +162,19 @@ export async function POST(request: NextRequest) {
       throw unauthorized("Credenciais inválidas");
     }
 
-    const valid = await comparePassword(password, user.password);
+    let valid = false;
+    try {
+      console.log("[Login] Comparando senha...");
+      valid = await comparePassword(password, user.password);
+      console.log("[Login] Comparação de senha concluída:", valid);
+    } catch (compareError) {
+      console.error("[Login] ❌ Erro ao comparar senha:", compareError);
+      if (compareError instanceof Error) {
+        console.error("[Login] Mensagem:", compareError.message);
+        console.error("[Login] Stack:", compareError.stack);
+      }
+      throw unauthorized("Credenciais inválidas");
+    }
 
     if (!valid) {
       console.log(`[Login] Senha inválida para usuário: ${email}`);
@@ -157,7 +183,19 @@ export async function POST(request: NextRequest) {
 
     console.log(`[Login] ✅ Login bem-sucedido: ${email}`);
 
-    const token = signJwt({ sub: user.id, email: user.email, role: user.role });
+    let token: string;
+    try {
+      console.log("[Login] Gerando token JWT...");
+      token = signJwt({ sub: user.id, email: user.email, role: user.role });
+      console.log("[Login] Token gerado com sucesso");
+    } catch (jwtError) {
+      console.error("[Login] ❌ Erro ao gerar token JWT:", jwtError);
+      if (jwtError instanceof Error) {
+        console.error("[Login] Mensagem:", jwtError.message);
+        console.error("[Login] Stack:", jwtError.stack);
+      }
+      throw new AppError("Erro ao gerar token de autenticação", 500, "JWT_ERROR");
+    }
 
     return jsonResponse({
       token,

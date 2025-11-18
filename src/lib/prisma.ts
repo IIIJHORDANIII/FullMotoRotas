@@ -8,28 +8,66 @@ function createPrismaClient(): PrismaClient {
   const databaseUrl = process.env.DATABASE_URL;
 
   if (!databaseUrl) {
-    throw new Error(
+    const error = new Error(
       "DATABASE_URL não está definida. Configure a string do Prisma Data Proxy (prisma+postgres://...) nas variáveis de ambiente."
     );
+    console.error("[Prisma] ❌", error.message);
+    throw error;
   }
 
-  if (!databaseUrl.startsWith("prisma")) {
+  // Verificar formato da URL
+  const isPrismaProxy = databaseUrl.startsWith("prisma://") || databaseUrl.startsWith("prisma+");
+  if (!isPrismaProxy) {
     console.warn(
-      "⚠️ DATABASE_URL não parece ser uma URL do Prisma Data Proxy. Certifique-se de usar uma conexão prisma:// ou prisma+postgres://."
+      "[Prisma] ⚠️ DATABASE_URL não parece ser uma URL do Prisma Data Proxy."
     );
+    console.warn(
+      "[Prisma] Certifique-se de usar uma conexão prisma:// ou prisma+postgres://."
+    );
+    console.warn(
+      "[Prisma] URL atual começa com:",
+      databaseUrl.substring(0, 20) + "..."
+    );
+  } else {
+    console.log("[Prisma] ✓ DATABASE_URL parece ser uma URL do Prisma Data Proxy");
   }
 
+  // Configurar variáveis de ambiente para Data Proxy
   process.env.PRISMA_GENERATE_DATAPROXY = "true";
   process.env.PRISMA_CLIENT_USE_DATAPROXY = "true";
   process.env.PRISMA_CLIENT_DATAPROXY = "true";
 
-  return new PrismaClient({
-    log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
-  });
+  try {
+    const client = new PrismaClient({
+      log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
+    });
+    console.log("[Prisma] ✓ PrismaClient criado com sucesso");
+    return client;
+  } catch (error) {
+    console.error("[Prisma] ❌ Erro ao criar PrismaClient:", error);
+    if (error instanceof Error) {
+      console.error("[Prisma] Mensagem:", error.message);
+    }
+    throw error;
+  }
 }
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
+}
+
+// Função auxiliar para testar conexão
+export async function testPrismaConnection(): Promise<{ success: boolean; error?: string }> {
+  try {
+    await prisma.$connect();
+    await prisma.$queryRaw`SELECT 1`;
+    await prisma.$disconnect();
+    return { success: true };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
+    console.error("[Prisma] ❌ Erro ao testar conexão:", errorMessage);
+    return { success: false, error: errorMessage };
+  }
 }
