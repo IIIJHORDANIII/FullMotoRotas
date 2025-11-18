@@ -3,12 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "PRISMA_GENERATE_DATAPROXY=true PRISMA_CLIENT_USE_DATAPROXY=true PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 npx prisma generate --data-proxy && next dev",
+    "dev": "PRISMA_GENERATE_DATAPROXY=true PRISMA_CLIENT_USE_DATAPROXY=true PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 PRISMA_SKIP_DOWNLOAD=1 PRISMA_CLIENT_ENGINE_TYPE=library npx prisma generate --data-proxy && next dev",
     "prebuild": "echo '🔧 Executando prebuild...' && node scripts/force-prisma-generate.js",
     "build": "echo '🔧 Iniciando build do Next.js...' && next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "echo '🔧 Executando postinstall...' && PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 node scripts/force-prisma-generate.js",
+    "postinstall": "echo '🔧 Executando postinstall...' && PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 PRISMA_SKIP_DOWNLOAD=1 PRISMA_CLIENT_ENGINE_TYPE=library node scripts/force-prisma-generate.js",
     "ensure-admin": "npx tsx scripts/ensure-admin.ts",
     "create-test-users": "npx tsx scripts/create-test-users.ts"
   },

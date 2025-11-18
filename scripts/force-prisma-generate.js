@@ -89,10 +89,14 @@ const env = {
   PRISMA_GENERATE_DATAPROXY: "true",
   PRISMA_CLIENT_USE_DATAPROXY: "true",
   PRISMA_CLIENT_DATAPROXY: "true",
-  // Ignorar verificação de checksum dos binários (não necessário para Data Proxy)
+  // Ignorar verificação de checksum dos binários (não necessário para Data Proxy/Accelerate)
   PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING: "1",
   // Não baixar binários desnecessários
   PRISMA_SKIP_POSTINSTALL_GENERATE: "true",
+  // Forçar uso de library engine (sem binários locais)
+  PRISMA_CLIENT_ENGINE_TYPE: "library",
+  // Desabilitar download de binários
+  PRISMA_SKIP_DOWNLOAD: "true",
 };
 
 // Limpar diretório gerado para garantir artefatos atualizados

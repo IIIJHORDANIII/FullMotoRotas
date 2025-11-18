@@ -5,19 +5,32 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createPrismaClient(): PrismaClient {
+  // Em desenvolvimento, tentar usar DIRECT_DATABASE_URL se disponível (conexão direta)
+  // Em produção, usar DATABASE_URL (Accelerate/Data Proxy)
+  const directUrl = process.env.DIRECT_DATABASE_URL;
   const databaseUrl = process.env.DATABASE_URL;
+  
+  // Em desenvolvimento, preferir conexão direta se disponível
+  const useDirectConnection = process.env.NODE_ENV === "development" && directUrl;
+  const finalUrl = useDirectConnection ? directUrl : databaseUrl;
 
-  if (!databaseUrl) {
+  if (!finalUrl) {
     const error = new Error(
-      "DATABASE_URL não está definida. Configure a string do Prisma Data Proxy (prisma+postgres://...) nas variáveis de ambiente."
+      useDirectConnection
+        ? "DIRECT_DATABASE_URL não está definida. Configure a string de conexão direta do banco de dados."
+        : "DATABASE_URL não está definida. Configure a string do Prisma Data Proxy (prisma+postgres://...) nas variáveis de ambiente."
     );
     console.error("[Prisma] ❌", error.message);
     throw error;
   }
 
   // Verificar formato da URL
-  const isPrismaProxy = databaseUrl.startsWith("prisma://") || databaseUrl.startsWith("prisma+");
-  if (!isPrismaProxy) {
+  const isPrismaProxy = finalUrl.startsWith("prisma://") || finalUrl.startsWith("prisma+");
+  
+  if (useDirectConnection) {
+    console.log("[Prisma] ✓ Usando conexão direta ao banco de dados (desenvolvimento)");
+    // Não configurar variáveis de Data Proxy para conexão direta
+  } else if (!isPrismaProxy) {
     console.warn(
       "[Prisma] ⚠️ DATABASE_URL não parece ser uma URL do Prisma Data Proxy."
     );
@@ -26,23 +39,27 @@ function createPrismaClient(): PrismaClient {
     );
     console.warn(
       "[Prisma] URL atual começa com:",
-      databaseUrl.substring(0, 20) + "..."
+      finalUrl.substring(0, 20) + "..."
     );
   } else {
     console.log("[Prisma] ✓ DATABASE_URL parece ser uma URL do Prisma Data Proxy");
+    // Configurar variáveis de ambiente para Data Proxy apenas se não for conexão direta
+    process.env.PRISMA_GENERATE_DATAPROXY = "true";
+    process.env.PRISMA_CLIENT_USE_DATAPROXY = "true";
+    process.env.PRISMA_CLIENT_DATAPROXY = "true";
   }
-
-  // Configurar variáveis de ambiente para Data Proxy
-  process.env.PRISMA_GENERATE_DATAPROXY = "true";
-  process.env.PRISMA_CLIENT_USE_DATAPROXY = "true";
-  process.env.PRISMA_CLIENT_DATAPROXY = "true";
 
   try {
     const client = new PrismaClient({
+      datasources: {
+        db: {
+          url: finalUrl,
+        },
+      },
       log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
     });
     console.log("[Prisma] ✓ PrismaClient criado com sucesso");
-    console.log("[Prisma] Runtime:", process.env.PRISMA_CLIENT_USE_DATAPROXY === "true" ? "Data Proxy" : "Standard");
+    console.log("[Prisma] Runtime:", useDirectConnection ? "Direct Connection" : (process.env.PRISMA_CLIENT_USE_DATAPROXY === "true" ? "Data Proxy" : "Standard"));
     return client;
   } catch (error) {
     console.error("[Prisma] ❌ Erro ao criar PrismaClient:", error);

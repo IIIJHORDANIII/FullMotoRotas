@@ -5,6 +5,7 @@ generator client {
   provider        = "prisma-client-js"
   previewFeatures = []
   output          = "../src/generated/prisma"
+  engineType      = "library" // Usar library engine para Accelerate/Data Proxy
 }
 
 datasource db {
