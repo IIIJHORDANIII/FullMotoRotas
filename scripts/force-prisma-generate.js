@@ -111,25 +111,46 @@ try {
   console.log("   - PRISMA_GENERATE_DATAPROXY:", env.PRISMA_GENERATE_DATAPROXY);
   console.log("   - PRISMA_CLIENT_USE_DATAPROXY:", env.PRISMA_CLIENT_USE_DATAPROXY);
   console.log("   - PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING:", env.PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING);
+  console.log("   - PRISMA_SKIP_DOWNLOAD:", env.PRISMA_SKIP_DOWNLOAD);
+  console.log("   - PRISMA_CLIENT_ENGINE_TYPE:", env.PRISMA_CLIENT_ENGINE_TYPE);
   
-  execSync("npx prisma generate --data-proxy", {
+  // Usar --no-engine para evitar download de binários
+  execSync("npx prisma generate --data-proxy --no-engine", {
     cwd: projectRoot,
     stdio: "inherit",
     env,
   });
-  console.log("\n✓ Prisma Client gerado com suporte a Data Proxy\n");
+  console.log("\n✓ Prisma Client gerado com suporte a Data Proxy (sem binários)\n");
 } catch (error) {
   const errorMessage = error instanceof Error ? error.message : String(error);
   console.error("❌ Erro ao executar prisma generate:", errorMessage);
   
-  // Se for erro de checksum, informar que foi ignorado
-  if (errorMessage.includes("checksum")) {
+  // Se for erro relacionado a download de binários, tentar novamente com --no-engine
+  if (errorMessage.includes("Failed to fetch") || errorMessage.includes("download") || errorMessage.includes("engine file")) {
+    console.error("\n⚠️ Erro ao baixar binários. Tentando novamente com --no-engine...");
+    try {
+      execSync("npx prisma generate --data-proxy --no-engine", {
+        cwd: projectRoot,
+        stdio: "inherit",
+        env: {
+          ...env,
+          PRISMA_SKIP_DOWNLOAD: "true",
+          PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING: "1",
+        },
+      });
+      console.log("\n✓ Prisma Client gerado com sucesso (sem binários)\n");
+    } catch (retryError) {
+      console.error("❌ Erro mesmo com --no-engine:", retryError instanceof Error ? retryError.message : retryError);
+      process.exit(1);
+    }
+  } else if (errorMessage.includes("checksum")) {
     console.error("\n💡 Nota: Erro de checksum ignorado com PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1");
     console.error("   Isso é normal ao usar Prisma Data Proxy, que não requer binários locais.");
     console.error("   O Prisma Client deve ter sido gerado corretamente mesmo com este aviso.\n");
+    // Não sair com erro se for apenas checksum
+  } else {
+    process.exit(1);
   }
-  
-  process.exit(1);
 }
 
 // Criar arquivos bridge (caso tenham sido limpos)

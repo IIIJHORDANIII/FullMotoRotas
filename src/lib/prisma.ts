@@ -10,7 +10,8 @@ function createPrismaClient(): PrismaClient {
   const directUrl = process.env.DIRECT_DATABASE_URL;
   const databaseUrl = process.env.DATABASE_URL;
   
-  // Em desenvolvimento, preferir conexão direta se disponível
+  // Em desenvolvimento, SEMPRE preferir conexão direta se disponível
+  // Isso evita problemas com Accelerate tentando baixar binários
   const useDirectConnection = process.env.NODE_ENV === "development" && directUrl;
   const finalUrl = useDirectConnection ? directUrl : databaseUrl;
 
@@ -29,7 +30,12 @@ function createPrismaClient(): PrismaClient {
   
   if (useDirectConnection) {
     console.log("[Prisma] ✓ Usando conexão direta ao banco de dados (desenvolvimento)");
+    console.log("[Prisma] ⚠️ Usando DIRECT_DATABASE_URL para evitar problemas com Accelerate");
     // Não configurar variáveis de Data Proxy para conexão direta
+    // Limpar variáveis de Data Proxy para garantir conexão direta
+    delete process.env.PRISMA_GENERATE_DATAPROXY;
+    delete process.env.PRISMA_CLIENT_USE_DATAPROXY;
+    delete process.env.PRISMA_CLIENT_DATAPROXY;
   } else if (!isPrismaProxy) {
     console.warn(
       "[Prisma] ⚠️ DATABASE_URL não parece ser uma URL do Prisma Data Proxy."
