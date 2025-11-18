@@ -128,6 +128,16 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               Rastrear
             </Link>
 
+            {/* Botão de sair para mobile */}
+            <button
+              onClick={handleLogout}
+              className="sm:hidden p-2 text-slate-300 hover:text-slate-100 text-xl transition-colors"
+              aria-label="Sair"
+              title="Sair"
+            >
+              🚪
+            </button>
+
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="hidden sm:block text-right">
                 <div className="text-xs sm:text-sm text-slate-400">Olá,</div>
