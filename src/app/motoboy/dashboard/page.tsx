@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import AppLayout from "@/components/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RoleProtectedRoute } from "@/components/RoleProtectedRoute";
@@ -124,25 +124,38 @@ export default function MotoboyDashboardPage() {
   }, []);
 
   // Atualizar localização no servidor (com throttling)
+  // Usar useRef para evitar recriação da função e manter GPS sempre ativo
+  const motoboyProfileRef = useRef<MotoboyProfile | null>(null);
+  
+  useEffect(() => {
+    motoboyProfileRef.current = motoboyProfile;
+  }, [motoboyProfile]);
+
   const updateLocation = useCallback(async (lat: number, lng: number) => {
     try {
       await api.patch("/api/motoboys/me", {
         currentLat: lat,
         currentLng: lng,
       });
-      if (motoboyProfile) {
+      // Atualizar perfil usando ref para evitar dependência circular
+      if (motoboyProfileRef.current) {
         setMotoboyProfile({
-          ...motoboyProfile,
+          ...motoboyProfileRef.current,
           currentLat: lat,
           currentLng: lng,
         });
       }
     } catch (err) {
       console.error("Erro ao atualizar localização:", err);
+      // Não interromper o GPS mesmo se houver erro na atualização
     }
-  }, [motoboyProfile]);
+  }, []); // Sem dependências - função estável que não será recriada
 
   // Obter geolocalização do navegador (apenas no cliente)
+  // Usar useRef para manter referência estável e evitar recriação do watch
+  const watchIdRef = useRef<number | null>(null);
+  const lastUpdateTimeRef = useRef<number>(0);
+  
   useEffect(() => {
     // Verificar se está no cliente
     if (typeof window === "undefined") return;
@@ -152,10 +165,14 @@ export default function MotoboyDashboardPage() {
       return;
     }
 
-    let lastUpdateTime = 0;
-    const UPDATE_INTERVAL = 30000; // Atualizar no servidor a cada 30 segundos
+    // Limpar watch anterior se existir
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+    }
 
-    const watchId = navigator.geolocation.watchPosition(
+    const UPDATE_INTERVAL = 15000; // Atualizar no servidor a cada 15 segundos (mais frequente)
+
+    watchIdRef.current = navigator.geolocation.watchPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
         const now = Date.now();
@@ -164,10 +181,13 @@ export default function MotoboyDashboardPage() {
         setLocation({ lat: latitude, lng: longitude });
         setLocationError(null);
         
-        // Atualizar no servidor apenas a cada intervalo
-        if (now - lastUpdateTime >= UPDATE_INTERVAL) {
-          lastUpdateTime = now;
-          updateLocation(latitude, longitude);
+        // Atualizar no servidor a cada intervalo
+        if (now - lastUpdateTimeRef.current >= UPDATE_INTERVAL) {
+          lastUpdateTimeRef.current = now;
+          updateLocation(latitude, longitude).catch((err) => {
+            console.error("Erro ao atualizar localização no servidor:", err);
+            // Continuar tentando mesmo se houver erro
+          });
         }
       },
       (error) => {
@@ -185,18 +205,23 @@ export default function MotoboyDashboardPage() {
         }
         setLocationError(message);
         console.error("Erro de geolocalização:", error);
+        // Não limpar o watch em caso de erro - continuar tentando
       },
       {
         enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 30000, // Aceitar posição com até 30 segundos
+        timeout: 15000, // Aumentar timeout para 15 segundos
+        maximumAge: 0, // Sempre obter posição mais recente possível
       }
     );
 
+    // Cleanup apenas quando o componente for desmontado
     return () => {
-      navigator.geolocation.clearWatch(watchId);
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
     };
-  }, [updateLocation]);
+  }, []); // Sem dependências - executar apenas uma vez quando o componente montar
 
   useEffect(() => {
     loadAssignments();
