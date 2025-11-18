@@ -278,25 +278,25 @@ export default function MapComponent({ motoboys, center = [-23.5505, -46.6333], 
       }
     });
 
-    // Ajustar zoom e centralizar no conjunto de motoboys sempre que houver pins
+    // Ajustar zoom e centralizar no conjunto de motoboys DEPOIS que os marcadores foram adicionados
     const motoboysWithLocation = motoboys.filter((m) => m.currentLat && m.currentLng);
     
     if (motoboysWithLocation.length > 0) {
-      const bounds = L.latLngBounds(
-        motoboysWithLocation.map((m) => [m.currentLat!, m.currentLng!] as [number, number])
-      );
-      
-      if (bounds.isValid()) {
-        // Pequeno delay para garantir que os marcadores foram adicionados ao mapa
-        setTimeout(() => {
-          if (!mapRef.current) return;
-          
+      // Aguardar um pouco mais para garantir que todos os marcadores foram renderizados
+      setTimeout(() => {
+        if (!mapRef.current) return;
+        
+        const bounds = L.latLngBounds(
+          motoboysWithLocation.map((m) => [m.currentLat!, m.currentLng!] as [number, number])
+        );
+        
+        if (bounds.isValid()) {
           if (motoboysWithLocation.length === 1) {
             // Se há apenas um motoboy, centralizar nele com zoom adequado
             mapRef.current.setView(
               [motoboysWithLocation[0].currentLat!, motoboysWithLocation[0].currentLng!], 
               15,
-              { animate: true, duration: 0.5 }
+              { animate: false } // Sem animação para garantir que centraliza imediatamente
             );
           } else {
             // Se há múltiplos motoboys, ajustar bounds para mostrar todos
@@ -304,20 +304,26 @@ export default function MapComponent({ motoboys, center = [-23.5505, -46.6333], 
               mapRef.current.fitBounds(bounds, { 
                 padding: [50, 50], 
                 maxZoom: 15,
-                animate: true,
-                duration: 0.5
+                animate: false // Sem animação para garantir que centraliza imediatamente
               });
             } else {
               // Se todos estão no mesmo lugar, centralizar com zoom fixo
               mapRef.current.setView(
                 [bounds.getCenter().lat, bounds.getCenter().lng], 
                 15,
-                { animate: true, duration: 0.5 }
+                { animate: false }
               );
             }
           }
-        }, 100);
-      }
+          
+          // Invalidar tamanho após centralizar para garantir renderização correta
+          setTimeout(() => {
+            if (mapRef.current) {
+              mapRef.current.invalidateSize();
+            }
+          }, 100);
+        }
+      }, 300); // Aumentar delay para garantir que marcadores foram renderizados
     } else {
       // Sem motoboys, manter o centro padrão
       setTimeout(() => {
