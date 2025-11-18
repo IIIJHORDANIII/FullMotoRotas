@@ -109,13 +109,11 @@ export default function MapComponent({ motoboys, center = [-23.5505, -46.6333], 
 
     return () => {
       clearTimeout(timer);
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
+      // NÃO remover o mapa aqui - apenas limpar quando o componente for desmontado completamente
+      // Isso evita que o mapa seja recriado durante atualizações
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [motoboys.length]); // Recriar mapa apenas se o número de motoboys mudar significativamente
+  }, []); // Criar mapa apenas uma vez quando o componente montar
 
   // Atualizar marcadores quando motoboys mudarem
   useEffect(() => {
@@ -124,7 +122,7 @@ export default function MapComponent({ motoboys, center = [-23.5505, -46.6333], 
     const map = mapRef.current;
     const markers = markersRef.current;
 
-    // Criar ou atualizar marcadores
+    // Criar ou atualizar marcadores SEM remover os existentes durante atualizações
     motoboys.forEach((motoboy) => {
       if (!motoboy.currentLat || !motoboy.currentLng) return;
       
@@ -250,33 +248,107 @@ export default function MapComponent({ motoboys, center = [-23.5505, -46.6333], 
 
         markers.set(motoboy.id, marker);
       } else {
-        // Atualizar posição do marcador existente
+        // Atualizar posição do marcador existente SEM remover
         const marker = markers.get(motoboy.id)!;
-        marker.setLatLng([motoboy.currentLat, motoboy.currentLng]);
+        const currentLatLng = marker.getLatLng();
+        const newLatLng = [motoboy.currentLat, motoboy.currentLng] as [number, number];
         
-        // Atualizar cor do marcador se disponibilidade mudou
+        // Só atualizar posição se mudou significativamente (evita flickering)
+        if (
+          Math.abs(currentLatLng.lat - newLatLng[0]) > 0.0001 ||
+          Math.abs(currentLatLng.lng - newLatLng[1]) > 0.0001
+        ) {
+          marker.setLatLng(newLatLng);
+        }
+        
+        // Atualizar cor do marcador se disponibilidade mudou (sem remover)
         const icon = marker.getIcon() as L.DivIcon;
         const iconHtml = icon.options.html as string;
         const isCurrentlyAvailable = iconHtml.includes("#10b981");
         
         if (isCurrentlyAvailable !== motoboy.isAvailable) {
-          // Recriar marcador com nova cor
-          map.removeLayer(marker);
-          markers.delete(motoboy.id);
-          // Será recriado na próxima iteração
+          // Recriar apenas o ícone, mantendo o marcador no mapa
+          const vehicleEmoji = motoboy.vehicleType === "moto" ? "🏍️" : motoboy.vehicleType === "bike" ? "🚲" : "🚗";
+          const markerColor = motoboy.isAvailable ? "#10b981" : "#ef4444";
+          
+          const markerDiv = document.createElement("div");
+          markerDiv.style.cssText = `
+            position: relative;
+            width: 48px;
+            height: 48px;
+          `;
+          
+          const circleDiv = document.createElement("div");
+          circleDiv.style.cssText = `
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background-color: ${markerColor};
+            border: 3px solid white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transition: transform 0.2s;
+          `;
+          circleDiv.textContent = vehicleEmoji;
+          
+          if (motoboy.isAvailable) {
+            const pulseDiv = document.createElement("div");
+            pulseDiv.style.cssText = `
+              position: absolute;
+              top: -4px;
+              right: -4px;
+              width: 16px;
+              height: 16px;
+              background-color: #34d399;
+              border-radius: 50%;
+              border: 2px solid white;
+              box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7);
+              animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+            `;
+            markerDiv.appendChild(pulseDiv);
+          }
+          
+          markerDiv.appendChild(circleDiv);
+          
+          const newIcon = L.divIcon({
+            className: "custom-marker",
+            html: markerDiv.outerHTML,
+            iconSize: [48, 48],
+            iconAnchor: [24, 24],
+            popupAnchor: [0, -24],
+          });
+          
+          marker.setIcon(newIcon);
         }
       }
     });
 
     // Remover marcadores apenas se realmente não existem mais na lista
-    // Isso evita que pins desapareçam temporariamente durante atualizações
+    // Usar um Set para verificação eficiente e evitar remoções desnecessárias
     const motoboyIds = new Set(motoboys.map((m) => m.id));
+    const toRemove: string[] = [];
+    
     markers.forEach((marker, id) => {
       if (!motoboyIds.has(id)) {
-        map.removeLayer(marker);
-        markers.delete(id);
+        // Marcar para remoção, mas não remover imediatamente para evitar flickering
+        toRemove.push(id);
       }
     });
+    
+    // Remover apenas os marcadores que realmente não existem mais
+    // Fazer isso em batch para evitar múltiplas atualizações do mapa
+    if (toRemove.length > 0) {
+      toRemove.forEach((id) => {
+        const marker = markers.get(id);
+        if (marker) {
+          map.removeLayer(marker);
+          markers.delete(id);
+        }
+      });
+    }
 
     // Ajustar zoom e centralizar no conjunto de motoboys DEPOIS que os marcadores foram adicionados
     const motoboysWithLocation = motoboys.filter((m) => m.currentLat && m.currentLng);
