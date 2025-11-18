@@ -75,6 +75,23 @@ export async function POST(request: NextRequest) {
       if (bootstrapError instanceof Error) {
         console.error("[Login] Mensagem do bootstrap:", bootstrapError.message);
         console.error("[Login] Stack do bootstrap:", bootstrapError.stack);
+        
+        // Se o erro do bootstrap for de conexão com banco, retornar erro específico
+        const errorMsg = bootstrapError.message.toLowerCase();
+        if (
+          errorMsg.includes("database") ||
+          errorMsg.includes("connect") ||
+          errorMsg.includes("prisma") ||
+          errorMsg.includes("dataproxy")
+        ) {
+          return errorResponse(
+            new AppError(
+              "Erro ao conectar com o banco de dados. Verifique a configuração da DATABASE_URL.",
+              500,
+              "DATABASE_CONNECTION_ERROR"
+            )
+          );
+        }
       }
       // Continuar mesmo se o bootstrap falhar (pode ser que o admin já exista)
     }
@@ -128,16 +145,24 @@ export async function POST(request: NextRequest) {
         
         // Verificar se é erro de conexão
         const errorMsgLower = dbError.message.toLowerCase();
-        if (errorMsgLower.includes("connect") ||
-            errorMsgLower.includes("econnrefused") ||
-            errorMsgLower.includes("enotfound") ||
-            errorMsgLower.includes("timeout") ||
-            errorMsgLower.includes("authentication failed") ||
-            errorMsgLower.includes("postgres")) {
-          console.error("[Login] Tipo detectado: Erro de conexão com Postgres");
+        if (
+          errorMsgLower.includes("connect") ||
+          errorMsgLower.includes("econnrefused") ||
+          errorMsgLower.includes("enotfound") ||
+          errorMsgLower.includes("timeout") ||
+          errorMsgLower.includes("authentication failed") ||
+          errorMsgLower.includes("postgres") ||
+          errorMsgLower.includes("prisma") ||
+          errorMsgLower.includes("dataproxy") ||
+          errorMsgLower.includes("api key") ||
+          errorMsgLower.includes("invalid url") ||
+          errorMsgLower.includes("network") ||
+          errorMsgLower.includes("fetch")
+        ) {
+          console.error("[Login] Tipo detectado: Erro de conexão com banco de dados");
           return errorResponse(
             new AppError(
-              "Erro ao conectar com o banco de dados. Verifique a configuração da DATABASE_URL.",
+              "Erro ao conectar com o banco de dados. Verifique a configuração da DATABASE_URL e se a API key do Prisma Data Proxy está correta.",
               500,
               "DATABASE_CONNECTION_ERROR"
             )
@@ -146,6 +171,13 @@ export async function POST(request: NextRequest) {
         
         // Outros erros do Prisma
         console.error("[Login] Tipo detectado: Erro desconhecido do Prisma");
+        return errorResponse(
+          new AppError(
+            `Erro ao acessar o banco de dados: ${dbError.message}`,
+            500,
+            "DATABASE_ERROR"
+          )
+        );
       }
       
       console.error("[Login] ========================================");
