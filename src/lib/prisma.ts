@@ -10,9 +10,11 @@ function createPrismaClient(): PrismaClient {
   const directUrl = process.env.DIRECT_DATABASE_URL;
   const databaseUrl = process.env.DATABASE_URL;
   
-  // Em desenvolvimento, SEMPRE preferir conexão direta se disponível
+  // Se DIRECT_DATABASE_URL estiver disponível, SEMPRE usar (mesmo sem NODE_ENV definido)
   // Isso evita problemas com Accelerate tentando baixar binários
-  const useDirectConnection = process.env.NODE_ENV === "development" && directUrl;
+  // Só usar Accelerate em produção explícita (NODE_ENV=production) e sem DIRECT_DATABASE_URL
+  const isProduction = process.env.NODE_ENV === "production";
+  const useDirectConnection = directUrl && !isProduction;
   const finalUrl = useDirectConnection ? directUrl : databaseUrl;
 
   if (!finalUrl) {
