@@ -122,8 +122,20 @@ export default function MapComponent({ motoboys, center = [-23.5505, -46.6333], 
     const map = mapRef.current;
     const markers = markersRef.current;
 
-    // Criar ou atualizar marcadores SEM remover os existentes durante atualizações
-    motoboys.forEach((motoboy) => {
+    // Filtrar motoboys com localização válida primeiro
+    const validMotoboys = motoboys.filter((m) => m.currentLat && m.currentLng);
+    
+    // Se não há motoboys válidos, limpar todos os marcadores
+    if (validMotoboys.length === 0) {
+      markers.forEach((marker) => map.removeLayer(marker));
+      markers.clear();
+      return;
+    }
+
+    // Criar ou atualizar marcadores em batch para melhor performance
+    const markersToAdd: L.Marker[] = [];
+    
+    validMotoboys.forEach((motoboy) => {
       if (!motoboy.currentLat || !motoboy.currentLng) return;
       
       if (!markers.has(motoboy.id)) {
@@ -191,7 +203,7 @@ export default function MapComponent({ motoboys, center = [-23.5505, -46.6333], 
 
         const marker = L.marker([motoboy.currentLat, motoboy.currentLng], {
           icon: vehicleIcon,
-        }).addTo(map);
+        });
 
         // Popup com informações
         const popupDiv = document.createElement("div");
@@ -247,6 +259,7 @@ export default function MapComponent({ motoboys, center = [-23.5505, -46.6333], 
         marker.bindPopup(popupDiv);
 
         markers.set(motoboy.id, marker);
+        markersToAdd.push(marker); // Adicionar à lista para adicionar em batch
       } else {
         // Atualizar posição do marcador existente SEM remover
         const marker = markers.get(motoboy.id)!;
@@ -326,83 +339,79 @@ export default function MapComponent({ motoboys, center = [-23.5505, -46.6333], 
       }
     });
 
+    // Adicionar novos marcadores em batch (mais eficiente)
+    if (markersToAdd.length > 0) {
+      // Usar requestAnimationFrame para adicionar marcadores de forma otimizada
+      requestAnimationFrame(() => {
+        markersToAdd.forEach((marker) => {
+          marker.addTo(map);
+        });
+      });
+    }
+
     // Remover marcadores apenas se realmente não existem mais na lista
     // Usar um Set para verificação eficiente e evitar remoções desnecessárias
-    const motoboyIds = new Set(motoboys.map((m) => m.id));
+    const motoboyIds = new Set(validMotoboys.map((m) => m.id));
     const toRemove: string[] = [];
     
     markers.forEach((marker, id) => {
       if (!motoboyIds.has(id)) {
-        // Marcar para remoção, mas não remover imediatamente para evitar flickering
+        // Marcar para remoção
         toRemove.push(id);
       }
     });
     
-    // Remover apenas os marcadores que realmente não existem mais
-    // Fazer isso em batch para evitar múltiplas atualizações do mapa
+    // Remover apenas os marcadores que realmente não existem mais em batch
     if (toRemove.length > 0) {
-      toRemove.forEach((id) => {
-        const marker = markers.get(id);
-        if (marker) {
-          map.removeLayer(marker);
-          markers.delete(id);
-        }
+      requestAnimationFrame(() => {
+        toRemove.forEach((id) => {
+          const marker = markers.get(id);
+          if (marker) {
+            map.removeLayer(marker);
+            markers.delete(id);
+          }
+        });
       });
     }
 
-    // Ajustar zoom e centralizar no conjunto de motoboys DEPOIS que os marcadores foram adicionados
-    const motoboysWithLocation = motoboys.filter((m) => m.currentLat && m.currentLng);
-    
-    if (motoboysWithLocation.length > 0) {
-      // Aguardar um pouco mais para garantir que todos os marcadores foram renderizados
-      setTimeout(() => {
+    // Ajustar zoom e centralizar apenas se necessário (evitar ajustes desnecessários)
+    if (validMotoboys.length > 0) {
+      // Usar debounce para evitar múltiplos ajustes
+      const timeoutId = setTimeout(() => {
         if (!mapRef.current) return;
         
         const bounds = L.latLngBounds(
-          motoboysWithLocation.map((m) => [m.currentLat!, m.currentLng!] as [number, number])
+          validMotoboys.map((m) => [m.currentLat!, m.currentLng!] as [number, number])
         );
         
         if (bounds.isValid()) {
-          if (motoboysWithLocation.length === 1) {
-            // Se há apenas um motoboy, centralizar nele com zoom adequado
-            mapRef.current.setView(
-              [motoboysWithLocation[0].currentLat!, motoboysWithLocation[0].currentLng!], 
-              15,
-              { animate: false } // Sem animação para garantir que centraliza imediatamente
-            );
-          } else {
-            // Se há múltiplos motoboys, ajustar bounds para mostrar todos
-            if (bounds.getNorth() !== bounds.getSouth() && bounds.getEast() !== bounds.getWest()) {
-              mapRef.current.fitBounds(bounds, { 
-                padding: [50, 50], 
-                maxZoom: 15,
-                animate: false // Sem animação para garantir que centraliza imediatamente
-              });
-            } else {
-              // Se todos estão no mesmo lugar, centralizar com zoom fixo
+          const currentBounds = mapRef.current.getBounds();
+          const boundsChanged = 
+            Math.abs(bounds.getNorth() - currentBounds.getNorth()) > 0.01 ||
+            Math.abs(bounds.getSouth() - currentBounds.getSouth()) > 0.01 ||
+            Math.abs(bounds.getEast() - currentBounds.getEast()) > 0.01 ||
+            Math.abs(bounds.getWest() - currentBounds.getWest()) > 0.01;
+          
+          // Só ajustar se os bounds mudaram significativamente
+          if (boundsChanged || markers.size === 1) {
+            if (validMotoboys.length === 1) {
               mapRef.current.setView(
-                [bounds.getCenter().lat, bounds.getCenter().lng], 
+                [validMotoboys[0].currentLat!, validMotoboys[0].currentLng!], 
                 15,
                 { animate: false }
               );
+            } else if (bounds.getNorth() !== bounds.getSouth() && bounds.getEast() !== bounds.getWest()) {
+              mapRef.current.fitBounds(bounds, { 
+                padding: [50, 50], 
+                maxZoom: 15,
+                animate: false
+              });
             }
           }
-          
-          // Invalidar tamanho após centralizar para garantir renderização correta
-          setTimeout(() => {
-            if (mapRef.current) {
-              mapRef.current.invalidateSize();
-            }
-          }, 100);
         }
-      }, 300); // Aumentar delay para garantir que marcadores foram renderizados
-    } else {
-      // Sem motoboys, manter o centro padrão
-      setTimeout(() => {
-        if (mapRef.current) {
-          mapRef.current.invalidateSize();
-        }
-      }, 200);
+      }, 100); // Reduzir delay para resposta mais rápida
+      
+      return () => clearTimeout(timeoutId);
     }
   }, [motoboys]);
 

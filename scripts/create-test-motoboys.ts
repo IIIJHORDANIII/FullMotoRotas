@@ -85,11 +85,75 @@ function random(min: number, max: number): number {
   return Math.random() * (max - min) + min;
 }
 
-// Função para gerar coordenadas aleatórias dentro de um raio
+// Função para gerar coordenadas distribuídas uniformemente dentro de um raio
+// Usa distribuição espacial para evitar pontos muito próximos
+function generateDistributedLocations(
+  centerLat: number,
+  centerLng: number,
+  radius: number,
+  count: number
+): { lat: number; lng: number }[] {
+  const locations: { lat: number; lng: number }[] = [];
+  const minDistance = radius / Math.sqrt(count); // Distância mínima entre pontos
+  
+  // Converter raio para graus (aproximadamente 1 grau = 111km)
+  const radiusInDegrees = radius / 111;
+  
+  for (let i = 0; i < count; i++) {
+    let attempts = 0;
+    let location: { lat: number; lng: number } | null = null;
+    const maxAttempts = 50; // Limite de tentativas para evitar loop infinito
+    
+    while (!location && attempts < maxAttempts) {
+      // Gerar um ângulo e distância
+      const angle = Math.random() * 2 * Math.PI;
+      // Usar distribuição mais uniforme (raiz quadrada para distribuir melhor)
+      const distance = Math.sqrt(Math.random()) * radiusInDegrees;
+      
+      const latOffset = distance * Math.cos(angle);
+      const lngOffset = distance * Math.sin(angle) / Math.cos(centerLat * Math.PI / 180);
+      
+      const candidateLat = centerLat + latOffset;
+      const candidateLng = centerLng + lngOffset;
+      
+      // Verificar se está longe o suficiente dos outros pontos
+      const tooClose = locations.some((existing) => {
+        const latDiff = candidateLat - existing.lat;
+        const lngDiff = candidateLng - existing.lng;
+        const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
+        return distance < minDistance;
+      });
+      
+      if (!tooClose) {
+        location = { lat: candidateLat, lng: candidateLng };
+      }
+      
+      attempts++;
+    }
+    
+    // Se não encontrou posição ideal após tentativas, usar posição aleatória mesmo
+    if (!location) {
+      const angle = Math.random() * 2 * Math.PI;
+      const distance = Math.sqrt(Math.random()) * radiusInDegrees;
+      const latOffset = distance * Math.cos(angle);
+      const lngOffset = distance * Math.sin(angle) / Math.cos(centerLat * Math.PI / 180);
+      location = {
+        lat: centerLat + latOffset,
+        lng: centerLng + lngOffset,
+      };
+    }
+    
+    locations.push(location);
+  }
+  
+  return locations;
+}
+
+// Função para gerar coordenadas aleatórias dentro de um raio (mantida para compatibilidade)
 function randomLocation(centerLat: number, centerLng: number, radius: number): { lat: number; lng: number } {
   // Gerar um ângulo aleatório e uma distância aleatória dentro do raio
   const angle = Math.random() * 2 * Math.PI;
-  const distance = Math.random() * radius;
+  const distance = Math.sqrt(Math.random()) * radius; // Usar raiz quadrada para distribuição mais uniforme
   
   // Converter distância em graus (aproximadamente 1 grau = 111km)
   const latOffset = (distance * Math.cos(angle)) / 111;
@@ -145,6 +209,9 @@ async function createTestMotoboys() {
 
       console.log(`\n📍 Criando ${count} motoboys em ${city.name}...`);
 
+      // Gerar localizações distribuídas uniformemente para esta cidade
+      const locations = generateDistributedLocations(city.centerLat, city.centerLng, city.radius, count);
+
       for (let i = 0; i < count; i++) {
         const fullName = generateFullName();
         const email = `motoboy.${city.name.toLowerCase().replace(/\s+/g, "")}.${i + 1}@teste.com`;
@@ -154,7 +221,7 @@ async function createTestMotoboys() {
         const cnhCategory = CNH_CATEGORIES[Math.floor(Math.random() * CNH_CATEGORIES.length)];
         const vehicleType = VEHICLE_TYPES[Math.floor(Math.random() * VEHICLE_TYPES.length)];
         const phone = generatePhone();
-        const location = randomLocation(city.centerLat, city.centerLng, city.radius);
+        const location = locations[i]; // Usar localização pré-distribuída
 
         // Verificar se já existe
         const existingUser = await prisma.user.findUnique({

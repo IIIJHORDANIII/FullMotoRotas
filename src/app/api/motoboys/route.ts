@@ -39,6 +39,10 @@ export async function GET(request: NextRequest) {
   try {
     await requireAuth(request, [Role.ADMIN, Role.ESTABLISHMENT]);
 
+    // Verificar se precisa calcular métricas (query param ?metrics=true)
+    const { searchParams } = new URL(request.url);
+    const includeMetrics = searchParams.get("metrics") === "true";
+
     const motoboys = await prisma.motoboyProfile.findMany({
       select: {
         id: true,
@@ -62,14 +66,20 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" },
     });
 
-    const withMetrics = await Promise.all(
-      motoboys.map(async (motoboy) => ({
-        ...motoboy,
-        metrics: await buildMotoboyMetrics(motoboy.id),
-      })),
-    );
+    // Só calcular métricas se solicitado explicitamente
+    // Isso melhora drasticamente a performance para o mapa que só precisa das localizações
+    if (includeMetrics) {
+      const withMetrics = await Promise.all(
+        motoboys.map(async (motoboy) => ({
+          ...motoboy,
+          metrics: await buildMotoboyMetrics(motoboy.id),
+        })),
+      );
+      return jsonResponse(withMetrics);
+    }
 
-    return jsonResponse(withMetrics);
+    // Retornar sem métricas para melhor performance
+    return jsonResponse(motoboys);
   } catch (error) {
     if (error instanceof AppError) {
       return errorResponse(error);
