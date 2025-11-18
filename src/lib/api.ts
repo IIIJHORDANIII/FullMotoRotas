@@ -25,7 +25,28 @@ export async function apiRequest<T>(
 
     if (!res.ok) {
       const error = await res.json().catch(() => ({ error: { message: `Erro ${res.status}` } }));
-      throw new Error(error.error?.message || `Erro ${res.status}: ${res.statusText}`);
+      const errorMessage = error.error?.message || `Erro ${res.status}: ${res.statusText}`;
+      
+      // Se for erro 401 (não autorizado) e a mensagem indicar token inválido/expirado
+      if (res.status === 401) {
+        const isTokenError = 
+          errorMessage.toLowerCase().includes("token inválido") ||
+          errorMessage.toLowerCase().includes("token expirado") ||
+          errorMessage.toLowerCase().includes("token de autenticação não encontrado") ||
+          errorMessage.toLowerCase().includes("unauthorized");
+        
+        if (isTokenError && typeof window !== "undefined") {
+          // Limpar dados de autenticação
+          localStorage.removeItem("motorotas_token");
+          localStorage.removeItem("motorotas_user");
+          localStorage.removeItem("motorotas_login_time");
+          
+          // Redirecionar para login
+          window.location.href = "/login";
+        }
+      }
+      
+      throw new Error(errorMessage);
     }
 
     return res.json();
