@@ -48,34 +48,14 @@ export default function MapComponent({ motoboys, center = [-23.5505, -46.6333], 
       containerRef.current.style.width = "100%";
     }
 
-    // Calcular centro inicial baseado nos motoboys, se houver
-    let initialCenter = center;
-    let initialZoom = zoom;
-    
-    const motoboysWithLocation = motoboys.filter((m) => m.currentLat && m.currentLng);
-    if (motoboysWithLocation.length > 0) {
-      if (motoboysWithLocation.length === 1) {
-        initialCenter = [motoboysWithLocation[0].currentLat!, motoboysWithLocation[0].currentLng!];
-        initialZoom = 15;
-      } else {
-        const bounds = L.latLngBounds(
-          motoboysWithLocation.map((m) => [m.currentLat!, m.currentLng!] as [number, number])
-        );
-        if (bounds.isValid()) {
-          initialCenter = [bounds.getCenter().lat, bounds.getCenter().lng];
-          initialZoom = 12;
-        }
-      }
-    }
-
     // Aguardar um pouco para garantir que o DOM está pronto
     const timer = setTimeout(() => {
       if (!containerRef.current || mapRef.current) return;
 
-      // Criar mapa com tema escuro
+      // Criar mapa com tema escuro usando centro e zoom padrão
       const map = L.map(containerRef.current, {
-        center: initialCenter,
-        zoom: initialZoom,
+        center: center,
+        zoom: zoom,
         zoomControl: true,
         attributionControl: true,
       });
@@ -86,18 +66,6 @@ export default function MapComponent({ motoboys, center = [-23.5505, -46.6333], 
         subdomains: "abcd",
         maxZoom: 19,
       }).addTo(map);
-
-      // Se há motoboys, ajustar bounds após criar o mapa
-      if (motoboysWithLocation.length > 1) {
-        const bounds = L.latLngBounds(
-          motoboysWithLocation.map((m) => [m.currentLat!, m.currentLng!] as [number, number])
-        );
-        if (bounds.isValid() && bounds.getNorth() !== bounds.getSouth() && bounds.getEast() !== bounds.getWest()) {
-          setTimeout(() => {
-            map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
-          }, 200);
-        }
-      }
 
       // Invalidar tamanho após um pequeno delay para garantir renderização
       setTimeout(() => {
@@ -373,54 +341,79 @@ export default function MapComponent({ motoboys, center = [-23.5505, -46.6333], 
         });
       });
     }
-
-    // Ajustar zoom e centralizar apenas se necessário (evitar ajustes desnecessários)
-    if (validMotoboys.length > 0) {
-      // Usar debounce para evitar múltiplos ajustes
-      const timeoutId = setTimeout(() => {
-        if (!mapRef.current) return;
-        
-        const bounds = L.latLngBounds(
-          validMotoboys.map((m) => [m.currentLat!, m.currentLng!] as [number, number])
-        );
-        
-        if (bounds.isValid()) {
-          const currentBounds = mapRef.current.getBounds();
-          const boundsChanged = 
-            Math.abs(bounds.getNorth() - currentBounds.getNorth()) > 0.01 ||
-            Math.abs(bounds.getSouth() - currentBounds.getSouth()) > 0.01 ||
-            Math.abs(bounds.getEast() - currentBounds.getEast()) > 0.01 ||
-            Math.abs(bounds.getWest() - currentBounds.getWest()) > 0.01;
-          
-          // Só ajustar se os bounds mudaram significativamente
-          if (boundsChanged || markers.size === 1) {
-            if (validMotoboys.length === 1) {
-              mapRef.current.setView(
-                [validMotoboys[0].currentLat!, validMotoboys[0].currentLng!], 
-                15,
-                { animate: false }
-              );
-            } else if (bounds.getNorth() !== bounds.getSouth() && bounds.getEast() !== bounds.getWest()) {
-              mapRef.current.fitBounds(bounds, { 
-                padding: [50, 50], 
-                maxZoom: 15,
-                animate: false
-              });
-            }
-          }
-        }
-      }, 100); // Reduzir delay para resposta mais rápida
-      
-      return () => clearTimeout(timeoutId);
-    }
   }, [motoboys]);
 
+  // Função para centralizar o mapa nos motoboys
+  const handleCenterMap = () => {
+    if (!mapRef.current) return;
+    
+    const validMotoboys = motoboys.filter((m) => m.currentLat && m.currentLng);
+    
+    if (validMotoboys.length === 0) {
+      return;
+    }
+    
+    if (validMotoboys.length === 1) {
+      // Se há apenas um motoboy, centralizar nele
+      mapRef.current.setView(
+        [validMotoboys[0].currentLat!, validMotoboys[0].currentLng!], 
+        15,
+        { animate: true }
+      );
+    } else {
+      // Se há múltiplos motoboys, ajustar bounds
+      const bounds = L.latLngBounds(
+        validMotoboys.map((m) => [m.currentLat!, m.currentLng!] as [number, number])
+      );
+      
+      if (bounds.isValid() && bounds.getNorth() !== bounds.getSouth() && bounds.getEast() !== bounds.getWest()) {
+        mapRef.current.fitBounds(bounds, { 
+          padding: [50, 50], 
+          maxZoom: 15,
+          animate: true
+        });
+      }
+    }
+  };
+
   return (
-    <div 
-      ref={containerRef} 
-      className="w-full h-full rounded-lg overflow-hidden border border-slate-800 shadow-xl"
-      style={{ minHeight: "500px", height: "100%" }}
-    />
+    <div className="relative w-full h-full rounded-lg overflow-hidden border border-slate-800 shadow-xl" style={{ minHeight: "500px", height: "100%" }}>
+      <div 
+        ref={containerRef} 
+        className="w-full h-full"
+      />
+      {/* Botão flutuante para centralizar */}
+      <button
+        onClick={handleCenterMap}
+        className="absolute bottom-6 right-6 z-[1000] bg-slate-900 hover:bg-slate-800 text-white rounded-full p-3 shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center group"
+        style={{
+          width: "56px",
+          height: "56px",
+          boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2)",
+        }}
+        title="Centralizar mapa nos motoboys"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-6 w-6 group-hover:scale-110 transition-transform duration-200"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+          />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+          />
+        </svg>
+      </button>
+    </div>
   );
 }
 

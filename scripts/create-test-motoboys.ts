@@ -85,8 +85,21 @@ function random(min: number, max: number): number {
   return Math.random() * (max - min) + min;
 }
 
-// Função para gerar coordenadas distribuídas uniformemente dentro de um raio
-// Usa distribuição espacial para evitar pontos muito próximos
+// Função para calcular distância em km entre duas coordenadas
+function distanceInKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371; // Raio da Terra em km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+// Função para gerar coordenadas aleatórias distribuídas pela cidade
+// Garante que cada motoboy esteja a pelo menos 25km de distância dos outros
 function generateDistributedLocations(
   centerLat: number,
   centerLng: number,
@@ -94,21 +107,22 @@ function generateDistributedLocations(
   count: number
 ): { lat: number; lng: number }[] {
   const locations: { lat: number; lng: number }[] = [];
-  const minDistance = radius / Math.sqrt(count); // Distância mínima entre pontos
   
   // Converter raio para graus (aproximadamente 1 grau = 111km)
   const radiusInDegrees = radius / 111;
   
+  // Distância mínima de 25km entre motoboys
+  const minDistanceKm = 25;
+  
   for (let i = 0; i < count; i++) {
     let attempts = 0;
     let location: { lat: number; lng: number } | null = null;
-    const maxAttempts = 50; // Limite de tentativas para evitar loop infinito
+    const maxAttempts = 500; // Mais tentativas para garantir espaçamento de 25km
     
     while (!location && attempts < maxAttempts) {
-      // Gerar um ângulo e distância
+      // Gerar coordenadas completamente aleatórias dentro do círculo
       const angle = Math.random() * 2 * Math.PI;
-      // Usar distribuição mais uniforme (raiz quadrada para distribuir melhor)
-      const distance = Math.sqrt(Math.random()) * radiusInDegrees;
+      const distance = Math.random() * radiusInDegrees;
       
       const latOffset = distance * Math.cos(angle);
       const lngOffset = distance * Math.sin(angle) / Math.cos(centerLat * Math.PI / 180);
@@ -116,12 +130,10 @@ function generateDistributedLocations(
       const candidateLat = centerLat + latOffset;
       const candidateLng = centerLng + lngOffset;
       
-      // Verificar se está longe o suficiente dos outros pontos
+      // Verificar se está a pelo menos 25km de distância de todos os outros motoboys
       const tooClose = locations.some((existing) => {
-        const latDiff = candidateLat - existing.lat;
-        const lngDiff = candidateLng - existing.lng;
-        const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
-        return distance < minDistance;
+        const distKm = distanceInKm(candidateLat, candidateLng, existing.lat, existing.lng);
+        return distKm < minDistanceKm;
       });
       
       if (!tooClose) {
@@ -131,10 +143,37 @@ function generateDistributedLocations(
       attempts++;
     }
     
-    // Se não encontrou posição ideal após tentativas, usar posição aleatória mesmo
+    // Se não encontrou após tentativas, tentar posições mais próximas da borda
+    // para maximizar o espaço disponível
+    if (!location) {
+      for (let attempt = 0; attempt < 200; attempt++) {
+        const angle = Math.random() * 2 * Math.PI;
+        // Tentar posições mais próximas da borda do círculo
+        const distance = (0.7 + Math.random() * 0.3) * radiusInDegrees; // Entre 70% e 100% do raio
+        
+        const latOffset = distance * Math.cos(angle);
+        const lngOffset = distance * Math.sin(angle) / Math.cos(centerLat * Math.PI / 180);
+        
+        const candidateLat = centerLat + latOffset;
+        const candidateLng = centerLng + lngOffset;
+        
+        const tooClose = locations.some((existing) => {
+          const distKm = distanceInKm(candidateLat, candidateLng, existing.lat, existing.lng);
+          return distKm < minDistanceKm;
+        });
+        
+        if (!tooClose) {
+          location = { lat: candidateLat, lng: candidateLng };
+          break;
+        }
+      }
+    }
+    
+    // Se ainda não encontrou, usar posição aleatória mesmo (pode estar mais próxima)
+    // Isso garante que sempre teremos uma localização
     if (!location) {
       const angle = Math.random() * 2 * Math.PI;
-      const distance = Math.sqrt(Math.random()) * radiusInDegrees;
+      const distance = Math.random() * radiusInDegrees;
       const latOffset = distance * Math.cos(angle);
       const lngOffset = distance * Math.sin(angle) / Math.cos(centerLat * Math.PI / 180);
       location = {
@@ -144,6 +183,12 @@ function generateDistributedLocations(
     }
     
     locations.push(location);
+  }
+  
+  // Embaralhar as localizações para garantir aleatoriedade na ordem
+  for (let i = locations.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [locations[i], locations[j]] = [locations[j], locations[i]];
   }
   
   return locations;
@@ -193,26 +238,74 @@ function generateFullName(): string {
 }
 
 async function createTestMotoboys() {
-  console.log("\n🔧 Criando 50 motoboys de teste...\n");
+  console.log("\n🔧 Criando/Atualizando 50 motoboys de teste...\n");
 
   const TOTAL_MOTOBOYS = 50;
   const motoboysPerCity = Math.floor(TOTAL_MOTOBOYS / CITIES.length);
   const remainder = TOTAL_MOTOBOYS % CITIES.length;
 
   let createdCount = 0;
+  let updatedCount = 0;
   let skippedCount = 0;
 
   try {
+    // Primeiro, buscar todos os motoboys existentes para redistribuir
+    const allExistingMotoboys = await prisma.motoboyProfile.findMany({
+      include: { user: true },
+    });
+
+    // Agrupar motoboys existentes por cidade (aproximadamente)
+    const motoboysByCity: { [key: number]: typeof allExistingMotoboys } = {};
+    CITIES.forEach((_, index) => {
+      motoboysByCity[index] = [];
+    });
+
+    allExistingMotoboys.forEach((motoboy) => {
+      if (motoboy.currentLat && motoboy.currentLng) {
+        // Encontrar cidade mais próxima
+        let closestCityIndex = 0;
+        let minDistance = Infinity;
+        CITIES.forEach((city, index) => {
+          const dist = distanceInKm(motoboy.currentLat!, motoboy.currentLng!, city.centerLat, city.centerLng);
+          if (dist < minDistance) {
+            minDistance = dist;
+            closestCityIndex = index;
+          }
+        });
+        motoboysByCity[closestCityIndex].push(motoboy);
+      }
+    });
+
     for (let cityIndex = 0; cityIndex < CITIES.length; cityIndex++) {
       const city = CITIES[cityIndex];
       const count = motoboysPerCity + (cityIndex < remainder ? 1 : 0);
 
-      console.log(`\n📍 Criando ${count} motoboys em ${city.name}...`);
+      console.log(`\n📍 Processando ${count} motoboys em ${city.name}...`);
 
       // Gerar localizações distribuídas uniformemente para esta cidade
       const locations = generateDistributedLocations(city.centerLat, city.centerLng, city.radius, count);
 
-      for (let i = 0; i < count; i++) {
+      // Primeiro, atualizar motoboys existentes desta cidade
+      const existingInCity = motoboysByCity[cityIndex] || [];
+      let locationIndex = 0;
+
+      for (const existingMotoboy of existingInCity.slice(0, count)) {
+        if (locationIndex < locations.length) {
+          await prisma.motoboyProfile.update({
+            where: { id: existingMotoboy.id },
+            data: {
+              currentLat: locations[locationIndex].lat,
+              currentLng: locations[locationIndex].lng,
+            },
+          });
+          console.log(`   ✅ Atualizado: ${existingMotoboy.fullName} - ${existingMotoboy.user.email}`);
+          updatedCount++;
+          locationIndex++;
+        }
+      }
+
+      // Depois, criar novos motoboys para completar a contagem
+      for (let i = locationIndex; i < count; i++) {
         const fullName = generateFullName();
         const email = `motoboy.${city.name.toLowerCase().replace(/\s+/g, "")}.${i + 1}@teste.com`;
         const password = "Motoboy@123";
@@ -226,11 +319,25 @@ async function createTestMotoboys() {
         // Verificar se já existe
         const existingUser = await prisma.user.findUnique({
           where: { email },
+          include: { motoboy: true },
         });
 
         if (existingUser) {
-          console.log(`   ⚠️  Já existe: ${email}`);
-          skippedCount++;
+          // Se existe mas não foi atualizado acima, atualizar agora
+          if (existingUser.motoboy) {
+            await prisma.motoboyProfile.update({
+              where: { id: existingUser.motoboy.id },
+              data: {
+                currentLat: location.lat,
+                currentLng: location.lng,
+              },
+            });
+            console.log(`   ✅ Atualizado: ${fullName} - ${email}`);
+            updatedCount++;
+          } else {
+            console.log(`   ⚠️  Usuário existe mas sem perfil: ${email}`);
+            skippedCount++;
+          }
           continue;
         }
 
@@ -309,10 +416,11 @@ async function createTestMotoboys() {
 
     // Resumo final
     console.log("\n" + "=".repeat(60));
-    console.log("📋 RESUMO DA CRIAÇÃO DE MOTOBOYS");
+    console.log("📋 RESUMO DA CRIAÇÃO/ATUALIZAÇÃO DE MOTOBOYS");
     console.log("=".repeat(60));
     console.log(`\n✅ Criados: ${createdCount} motoboys`);
-    console.log(`⚠️  Ignorados (já existiam): ${skippedCount} motoboys`);
+    console.log(`🔄 Atualizados: ${updatedCount} motoboys`);
+    console.log(`⚠️  Ignorados: ${skippedCount} motoboys`);
     console.log(`\n📍 Distribuição:`);
     
     let startIndex = 0;

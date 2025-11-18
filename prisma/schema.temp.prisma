@@ -1,0 +1,172 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = []
+  output = "../node_modules/.prisma/client"
+
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  // Uncomment if you need a separate unpooled connection (Prisma <5.10)
+  // directUrl = env("DATABASE_URL_UNPOOLED")
+}
+
+/// Roles de acesso para usuários do sistema.
+enum Role {
+  ADMIN
+  ESTABLISHMENT
+  MOTOBOY
+}
+
+/// Planos disponíveis para estabelecimentos.
+enum EstablishmentPlan {
+  BASIC
+  PROFESSIONAL
+}
+
+/// Status possíveis para pedidos/entregas.
+enum DeliveryStatus {
+  PENDING
+  ASSIGNED
+  IN_TRANSIT
+  DELIVERED
+  CANCELLED
+}
+
+/// Status de um vínculo entre um pedido e um motoboy.
+enum AssignmentStatus {
+  ASSIGNED
+  ACCEPTED
+  REJECTED
+  COMPLETED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  role      Role
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  establishment   EstablishmentProfile?
+  motoboy         MotoboyProfile?
+  reviewsAuthored Review[] @relation("UserAuthorReviews")
+  reviewsReceived Review[] @relation("UserTargetReviews")
+}
+
+model EstablishmentProfile {
+  id                           String            @id @default(cuid())
+  userId                       String            @unique
+  name                         String
+  cnpj                         String            @unique
+  contactEmail                 String
+  contactPhone                 String?
+  addressLine1                 String
+  addressLine2                 String?
+  city                         String
+  state                        String
+  postalCode                   String
+  deliveryRadiusKm             Float             @default(5)
+  baseDeliveryFee              Float             @default(0)
+  additionalPerKm              Float             @default(0)
+  estimatedDeliveryTimeMinutes Int               @default(30)
+  plan                         EstablishmentPlan @default(BASIC)
+  isActive                     Boolean           @default(true)
+  notes                        String?
+  lastBillingAt                DateTime?
+  createdAt                    DateTime          @default(now())
+  updatedAt                    DateTime          @updatedAt
+
+  user   User            @relation(fields: [userId], references: [id])
+  orders DeliveryOrder[]
+}
+
+model MotoboyProfile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  fullName     String
+  cpf          String   @unique
+  cnhNumber    String
+  cnhCategory  String
+  vehicleType  String
+  phone        String?
+  isAvailable  Boolean  @default(false)
+  currentLat   Float?
+  currentLng   Float?
+  workSchedule Json?
+  verifiedAt   DateTime?
+  hiredAt      DateTime? @default(now())
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user        User                @relation(fields: [userId], references: [id])
+  assignments DeliveryAssignment[]
+}
+
+model DeliveryOrder {
+  id               String         @id @default(cuid())
+  establishmentId  String
+  customerName     String
+  customerPhone    String?
+  pickupAddress    String
+  deliveryAddress  String
+  status           DeliveryStatus @default(PENDING)
+  deliveryCode     String         @unique
+  notes            String?
+  distanceKm       Float?
+  deliveryFee      Float?
+  scheduledAt      DateTime?
+  completedAt      DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  establishment EstablishmentProfile @relation(fields: [establishmentId], references: [id])
+  assignments   DeliveryAssignment[]
+  events        DeliveryEvent[]
+  reviews       Review[]
+}
+
+model DeliveryAssignment {
+  id              String           @id @default(cuid())
+  orderId         String
+  motoboyId       String
+  status          AssignmentStatus @default(ASSIGNED)
+  rejectionReason String?
+  assignedAt      DateTime         @default(now())
+  acceptedAt      DateTime?
+  completedAt     DateTime?
+
+  order   DeliveryOrder  @relation(fields: [orderId], references: [id])
+  motoboy MotoboyProfile @relation(fields: [motoboyId], references: [id])
+}
+
+model DeliveryEvent {
+  id        String         @id @default(cuid())
+  orderId   String
+  status    DeliveryStatus
+  message   String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  order DeliveryOrder @relation(fields: [orderId], references: [id])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  orderId   String
+  authorId  String
+  targetId  String
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  order  DeliveryOrder @relation(fields: [orderId], references: [id])
+  author User          @relation("UserAuthorReviews", fields: [authorId], references: [id])
+  target User          @relation("UserTargetReviews", fields: [targetId], references: [id])
+}

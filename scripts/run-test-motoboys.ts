@@ -1,26 +1,61 @@
 // Script para manter motoboys online enquanto roda e removê-los ao encerrar
-import { Role } from "@/generated/prisma/enums";
+// Usa PostgreSQL direto para evitar problemas com Prisma Data Proxy
+import { Client } from "pg";
 import bcrypt from "bcryptjs";
 import * as readline from "readline";
+import { readFileSync } from "fs";
+import { resolve } from "path";
+import { randomUUID } from "crypto";
 
-// Importar PrismaClient diretamente do gerado e configurar com a URL correta
-import { PrismaClient } from "@/generated/prisma";
-
-// Usar DATABASE_URL (Data Proxy) do .env - o cliente gerado espera essa URL
-const databaseUrl = process.env.DATABASE_URL;
-if (!databaseUrl) {
-  throw new Error("DATABASE_URL não está definida no .env");
+// Carregar variáveis de ambiente do .env manualmente
+try {
+  const envPath = resolve(process.cwd(), ".env");
+  const envFile = readFileSync(envPath, "utf-8");
+  envFile.split("\n").forEach((line) => {
+    const trimmedLine = line.trim();
+    if (trimmedLine && !trimmedLine.startsWith("#")) {
+      const [key, ...valueParts] = trimmedLine.split("=");
+      if (key && valueParts.length > 0) {
+        const value = valueParts.join("=").replace(/^["']|["']$/g, "");
+        if (!process.env[key.trim()]) {
+          process.env[key.trim()] = value.trim();
+        }
+      }
+    }
+  });
+} catch (error) {
+  console.warn("⚠️  Não foi possível carregar .env, usando variáveis de ambiente do sistema");
 }
 
-console.log(`[Script] Usando DATABASE_URL (Data Proxy): ${databaseUrl.substring(0, Math.min(50, databaseUrl.length))}...`);
+// Para scripts locais, precisamos usar uma URL direta do PostgreSQL
+const directUrl = process.env.DIRECT_DATABASE_URL;
+const databaseUrl = process.env.DATABASE_URL;
 
-// Criar cliente Prisma com a URL do Data Proxy
-const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: databaseUrl,
-    },
-  },
+if (!directUrl && !databaseUrl) {
+  throw new Error(
+    "DIRECT_DATABASE_URL ou DATABASE_URL não está definida. Configure a string de conexão do banco de dados.\n" +
+    "Para scripts locais, use DIRECT_DATABASE_URL com uma URL direta do PostgreSQL (postgresql://...)"
+  );
+}
+
+// Usar DIRECT_DATABASE_URL se disponível (conexão direta), senão DATABASE_URL
+let finalUrl = directUrl || databaseUrl;
+
+// Se a URL começa com prisma:// ou prisma+postgres://, precisamos usar DIRECT_DATABASE_URL
+if (finalUrl.startsWith("prisma://") || finalUrl.startsWith("prisma+postgres://")) {
+  if (!directUrl) {
+    throw new Error(
+      "DATABASE_URL é uma URL do Prisma Data Proxy. Configure DIRECT_DATABASE_URL com uma URL direta do PostgreSQL (postgresql://...)"
+    );
+  }
+  finalUrl = directUrl;
+}
+
+console.log(`[Script] Usando URL: ${finalUrl.substring(0, Math.min(50, finalUrl.length))}...`);
+
+// Criar cliente PostgreSQL direto
+const client = new Client({
+  connectionString: finalUrl,
 });
 
 // IDs dos motoboys criados (para limpar ao encerrar)
@@ -85,31 +120,105 @@ function randomLocation(centerLat: number, centerLng: number, radius: number): {
   };
 }
 
-// Função para distribuir motoboys de forma mais uniforme usando uma grade
+// Função para calcular distância em km entre duas coordenadas
+function distanceInKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371; // Raio da Terra em km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+// Função para gerar coordenadas aleatórias distribuídas pela cidade
+// Garante que cada motoboy esteja a pelo menos 25km de distância dos outros
 function distributedLocations(centerLat: number, centerLng: number, radius: number, count: number): Array<{ lat: number; lng: number }> {
   const locations: Array<{ lat: number; lng: number }> = [];
   
-  // Calcular número de linhas e colunas para criar uma grade
-  const gridSize = Math.ceil(Math.sqrt(count));
-  const stepLat = (radius * 2) / gridSize / 111; // Converter para graus
-  const stepLng = (radius * 2) / gridSize / (111 * Math.cos(centerLat * Math.PI / 180));
+  // Converter raio para graus (aproximadamente 1 grau = 111km)
+  const radiusInDegrees = radius / 111;
   
-  // Criar pontos em uma grade
-  const startLat = centerLat - radius / 111;
-  const startLng = centerLng - radius / (111 * Math.cos(centerLat * Math.PI / 180));
+  // Distância mínima de 25km entre motoboys
+  const minDistanceKm = 25;
   
   for (let i = 0; i < count; i++) {
-    const row = Math.floor(i / gridSize);
-    const col = i % gridSize;
+    let attempts = 0;
+    let location: { lat: number; lng: number } | null = null;
+    const maxAttempts = 500; // Mais tentativas para garantir espaçamento de 25km
     
-    // Adicionar pequena variação aleatória para não ficar muito uniforme
-    const randomOffsetLat = (Math.random() - 0.5) * stepLat * 0.3;
-    const randomOffsetLng = (Math.random() - 0.5) * stepLng * 0.3;
+    while (!location && attempts < maxAttempts) {
+      // Gerar coordenadas completamente aleatórias dentro do círculo
+      const angle = Math.random() * 2 * Math.PI;
+      const distance = Math.random() * radiusInDegrees;
+      
+      const latOffset = distance * Math.cos(angle);
+      const lngOffset = distance * Math.sin(angle) / Math.cos(centerLat * Math.PI / 180);
+      
+      const candidateLat = centerLat + latOffset;
+      const candidateLng = centerLng + lngOffset;
+      
+      // Verificar se está a pelo menos 5km de distância de todos os outros motoboys
+      const tooClose = locations.some((existing) => {
+        const distKm = distanceInKm(candidateLat, candidateLng, existing.lat, existing.lng);
+        return distKm < minDistanceKm;
+      });
+      
+      if (!tooClose) {
+        location = { lat: candidateLat, lng: candidateLng };
+      }
+      
+      attempts++;
+    }
     
-    locations.push({
-      lat: startLat + (row * stepLat) + randomOffsetLat,
-      lng: startLng + (col * stepLng) + randomOffsetLng,
-    });
+    // Se não encontrou após tentativas, tentar posições mais próximas da borda
+    // para maximizar o espaço disponível
+    if (!location) {
+      for (let attempt = 0; attempt < 200; attempt++) {
+        const angle = Math.random() * 2 * Math.PI;
+        // Tentar posições mais próximas da borda do círculo
+        const distance = (0.7 + Math.random() * 0.3) * radiusInDegrees; // Entre 70% e 100% do raio
+        
+        const latOffset = distance * Math.cos(angle);
+        const lngOffset = distance * Math.sin(angle) / Math.cos(centerLat * Math.PI / 180);
+        
+        const candidateLat = centerLat + latOffset;
+        const candidateLng = centerLng + lngOffset;
+        
+        const tooClose = locations.some((existing) => {
+          const distKm = distanceInKm(candidateLat, candidateLng, existing.lat, existing.lng);
+          return distKm < minDistanceKm;
+        });
+        
+        if (!tooClose) {
+          location = { lat: candidateLat, lng: candidateLng };
+          break;
+        }
+      }
+    }
+    
+    // Se ainda não encontrou, usar posição aleatória mesmo (pode estar mais próxima)
+    // Isso garante que sempre teremos uma localização
+    if (!location) {
+      const angle = Math.random() * 2 * Math.PI;
+      const distance = Math.random() * radiusInDegrees;
+      const latOffset = distance * Math.cos(angle);
+      const lngOffset = distance * Math.sin(angle) / Math.cos(centerLat * Math.PI / 180);
+      location = {
+        lat: centerLat + latOffset,
+        lng: centerLng + lngOffset,
+      };
+    }
+    
+    locations.push(location);
+  }
+  
+  // Embaralhar as localizações para garantir aleatoriedade na ordem
+  for (let i = locations.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [locations[i], locations[j]] = [locations[j], locations[i]];
   }
   
   return locations;
@@ -154,33 +263,36 @@ async function createOrUpdateMotoboys() {
       const location = locations[i];
 
       try {
-        // Verificar se já existe
-        const existingUser = await prisma.user.findUnique({
-          where: { email },
-          include: { motoboy: true },
-        });
+        // Verificar se já existe usando SQL direto
+        const userResult = await client.query(
+          `SELECT u.id, u.email, m.id as motoboy_id 
+           FROM "User" u 
+           LEFT JOIN "MotoboyProfile" m ON m."userId" = u.id 
+           WHERE u.email = $1`,
+          [email]
+        );
 
-        if (existingUser && existingUser.motoboy) {
+        if (userResult.rows.length > 0 && userResult.rows[0].motoboy_id) {
           // Atualizar localização do motoboy existente
-          await prisma.motoboyProfile.update({
-            where: { id: existingUser.motoboy.id },
-            data: {
-              currentLat: location.lat,
-              currentLng: location.lng,
-              isAvailable: true,
-            },
-          });
-          if (!createdMotoboyIds.includes(existingUser.motoboy.id)) {
-            createdMotoboyIds.push(existingUser.motoboy.id);
+          await client.query(
+            `UPDATE "MotoboyProfile" 
+             SET "currentLat" = $1, "currentLng" = $2, "isAvailable" = true 
+             WHERE id = $3`,
+            [location.lat, location.lng, userResult.rows[0].motoboy_id]
+          );
+          
+          const motoboyId = userResult.rows[0].motoboy_id;
+          if (!createdMotoboyIds.includes(motoboyId)) {
+            createdMotoboyIds.push(motoboyId);
           }
           // Salvar localização inicial para manter distribuição
-          motoboyLocations.set(existingUser.motoboy.id, {
+          motoboyLocations.set(motoboyId, {
             lat: location.lat,
             lng: location.lng,
             cityIndex: cityIndex,
           });
         } else {
-          // Criar novo motoboy
+          // Criar novo motoboy usando SQL direto
           const fullName = generateFullName();
           const passwordHash = await bcrypt.hash("Motoboy@123", 10);
           const cpf = generateCPF();
@@ -189,39 +301,33 @@ async function createOrUpdateMotoboys() {
           const vehicleType = VEHICLE_TYPES[Math.floor(Math.random() * VEHICLE_TYPES.length)];
           const phone = generatePhone();
 
-          const user = await prisma.user.create({
-            data: {
-              email,
-              password: passwordHash,
-              role: Role.MOTOBOY,
-              isActive: true,
-              motoboy: {
-                create: {
-                  fullName,
-                  cpf,
-                  cnhNumber,
-                  cnhCategory,
-                  vehicleType,
-                  phone,
-                  isAvailable: true,
-                  currentLat: location.lat,
-                  currentLng: location.lng,
-                  hiredAt: new Date(),
-                },
-              },
-            },
-            include: { motoboy: true },
-          });
+          // Gerar IDs únicos
+          const userId = randomUUID();
+          const motoboyId = randomUUID();
 
-          if (user.motoboy) {
-            createdMotoboyIds.push(user.motoboy.id);
-            // Salvar localização inicial para manter distribuição
-            motoboyLocations.set(user.motoboy.id, {
-              lat: location.lat,
-              lng: location.lng,
-              cityIndex: cityIndex,
-            });
-          }
+          // Criar usuário primeiro
+          await client.query(
+            `INSERT INTO "User" (id, email, password, role, "isActive", "createdAt", "updatedAt")
+             VALUES ($1, $2, $3, 'MOTOBOY', true, NOW(), NOW())`,
+            [userId, email, passwordHash]
+          );
+
+          // Criar perfil de motoboy
+          await client.query(
+            `INSERT INTO "MotoboyProfile" 
+             (id, "userId", "fullName", cpf, "cnhNumber", "cnhCategory", "vehicleType", phone, 
+              "isAvailable", "currentLat", "currentLng", "hiredAt", "createdAt", "updatedAt")
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, $9, $10, NOW(), NOW(), NOW())`,
+            [motoboyId, userId, fullName, cpf, cnhNumber, cnhCategory, vehicleType, phone, location.lat, location.lng]
+          );
+
+          createdMotoboyIds.push(motoboyId);
+          // Salvar localização inicial para manter distribuição
+          motoboyLocations.set(motoboyId, {
+            lat: location.lat,
+            lng: location.lng,
+            cityIndex: cityIndex,
+          });
         }
       } catch (error) {
         console.error(`Erro ao criar/atualizar motoboy ${email}:`, error);
@@ -237,15 +343,17 @@ async function updateMotoboyLocations() {
       
       if (!savedLocation) {
         // Se não temos localização salva, buscar do banco e salvar
-        const motoboy = await prisma.motoboyProfile.findUnique({
-          where: { id: motoboyId },
-        });
+        const motoboyResult = await client.query(
+          `SELECT "currentLat", "currentLng" FROM "MotoboyProfile" WHERE id = $1`,
+          [motoboyId]
+        );
         
-        if (motoboy && motoboy.currentLat && motoboy.currentLng) {
+        if (motoboyResult.rows.length > 0 && motoboyResult.rows[0].currentLat && motoboyResult.rows[0].currentLng) {
+          const motoboy = motoboyResult.rows[0];
           // Encontrar cidade correspondente
           const cityIndex = CITIES.findIndex((c) => {
-            const latDiff = Math.abs(motoboy.currentLat! - c.centerLat);
-            const lngDiff = Math.abs(motoboy.currentLng! - c.centerLng);
+            const latDiff = Math.abs(motoboy.currentLat - c.centerLat);
+            const lngDiff = Math.abs(motoboy.currentLng - c.centerLng);
             return latDiff < 0.5 && lngDiff < 0.5;
           });
           
@@ -264,14 +372,12 @@ async function updateMotoboyLocations() {
       const latOffset = (Math.random() - 0.5) * variation;
       const lngOffset = (Math.random() - 0.5) * variation;
       
-      await prisma.motoboyProfile.update({
-        where: { id: motoboyId },
-        data: {
-          currentLat: savedLocation.lat + latOffset,
-          currentLng: savedLocation.lng + lngOffset,
-          isAvailable: true,
-        },
-      });
+      await client.query(
+        `UPDATE "MotoboyProfile" 
+         SET "currentLat" = $1, "currentLng" = $2, "isAvailable" = true 
+         WHERE id = $3`,
+        [savedLocation.lat + latOffset, savedLocation.lng + lngOffset, motoboyId]
+      );
     } catch (error) {
       console.error(`Erro ao atualizar motoboy ${motoboyId}:`, error);
     }
@@ -283,14 +389,12 @@ async function cleanupMotoboys() {
   
   for (const motoboyId of createdMotoboyIds) {
     try {
-      await prisma.motoboyProfile.update({
-        where: { id: motoboyId },
-        data: {
-          currentLat: null,
-          currentLng: null,
-          isAvailable: false,
-        },
-      });
+      await client.query(
+        `UPDATE "MotoboyProfile" 
+         SET "currentLat" = NULL, "currentLng" = NULL, "isAvailable" = false 
+         WHERE id = $1`,
+        [motoboyId]
+      );
     } catch (error) {
       console.error(`Erro ao limpar motoboy ${motoboyId}:`, error);
     }
@@ -300,47 +404,56 @@ async function cleanupMotoboys() {
 }
 
 async function main() {
-  console.log("\n🚀 Iniciando script de motoboys de teste...");
-  console.log("📌 Os motoboys aparecerão no mapa enquanto o script estiver rodando");
-  console.log("🛑 Pressione Ctrl+C para encerrar e remover os motoboys\n");
+  try {
+    // Conectar ao banco de dados
+    await client.connect();
+    console.log("✅ Conectado ao banco de dados\n");
 
-  // Criar/atualizar motoboys inicialmente
-  await createOrUpdateMotoboys();
-  console.log(`✅ ${createdMotoboyIds.length} motoboys criados/atualizados`);
+    console.log("\n🚀 Iniciando script de motoboys de teste...");
+    console.log("📌 Os motoboys aparecerão no mapa enquanto o script estiver rodando");
+    console.log("🛑 Pressione Ctrl+C para encerrar e remover os motoboys\n");
 
-  // Atualizar localizações a cada 15 segundos
-  const updateInterval = setInterval(async () => {
-    await updateMotoboyLocations();
-    console.log(`📍 Localizações atualizadas (${new Date().toLocaleTimeString()})`);
-  }, 15000);
+    // Criar/atualizar motoboys inicialmente
+    await createOrUpdateMotoboys();
+    console.log(`✅ ${createdMotoboyIds.length} motoboys criados/atualizados`);
 
-  // Handler para encerramento gracioso
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
+    // Atualizar localizações a cada 15 segundos
+    const updateInterval = setInterval(async () => {
+      await updateMotoboyLocations();
+      console.log(`📍 Localizações atualizadas (${new Date().toLocaleTimeString()})`);
+    }, 15000);
 
-  const cleanup = async () => {
-    clearInterval(updateInterval);
+    // Handler para encerramento gracioso
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+
+    const cleanup = async () => {
+      clearInterval(updateInterval);
+      await cleanupMotoboys();
+      await client.end();
+      rl.close();
+      process.exit(0);
+    };
+
+    process.on("SIGINT", cleanup);
+    process.on("SIGTERM", cleanup);
+
+    // Manter o script rodando
+    console.log("\n⏳ Script rodando... Pressione Ctrl+C para encerrar\n");
+  } catch (error) {
+    console.error("❌ Erro fatal:", error);
     await cleanupMotoboys();
-    // Não desconectar se estiver usando o singleton do prisma
-    // await prisma.$disconnect();
-    rl.close();
-    process.exit(0);
-  };
-
-  process.on("SIGINT", cleanup);
-  process.on("SIGTERM", cleanup);
-
-  // Manter o script rodando
-  console.log("\n⏳ Script rodando... Pressione Ctrl+C para encerrar\n");
+    await client.end();
+    process.exit(1);
+  }
 }
 
 main().catch(async (error) => {
   console.error("❌ Erro fatal:", error);
   await cleanupMotoboys();
-  // Não desconectar se estiver usando o singleton do prisma
-  // await prisma.$disconnect();
+  await client.end();
   process.exit(1);
 });
 
