@@ -10,8 +10,10 @@ type MotoboyLocationMapProps = {
   fullName?: string;
 };
 
-// Fix para ícones padrão do Leaflet
-if (typeof window !== "undefined") {
+// Fix para ícones padrão do Leaflet (apenas no cliente)
+let iconFixed = false;
+if (typeof window !== "undefined" && !iconFixed) {
+  iconFixed = true;
   const DefaultIcon = L.Icon.Default.prototype as unknown as {
     _getIconUrl?: string;
   };

@@ -7,7 +7,20 @@ import { RoleProtectedRoute } from "@/components/RoleProtectedRoute";
 import { useToast } from "@/components/Toast";
 import { api } from "@/lib/api";
 import Link from "next/link";
-import MotoboyLocationMap from "@/components/MotoboyLocationMap";
+import dynamic from "next/dynamic";
+
+// Importar mapa dinamicamente para evitar problemas de SSR
+const MotoboyLocationMap = dynamic(() => import("@/components/MotoboyLocationMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center bg-slate-900 rounded-lg">
+      <div className="text-center text-slate-400">
+        <div className="animate-spin text-4xl mb-4">⟳</div>
+        <p>Carregando mapa...</p>
+      </div>
+    </div>
+  ),
+});
 
 type Order = {
   id: string;
@@ -129,8 +142,11 @@ export default function MotoboyDashboardPage() {
     }
   }, [motoboyProfile]);
 
-  // Obter geolocalização do navegador
+  // Obter geolocalização do navegador (apenas no cliente)
   useEffect(() => {
+    // Verificar se está no cliente
+    if (typeof window === "undefined") return;
+    
     if (!navigator.geolocation) {
       setLocationError("Geolocalização não suportada pelo navegador");
       return;
