@@ -108,6 +108,7 @@ export default function MapComponent({ motoboys, center = [-23.5505, -46.6333], 
   const containerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
   const userInteractedRef = useRef<boolean>(false); // Rastrear se o usuário interagiu com o mapa
+  const hasCenteredOnceRef = useRef<boolean>(false); // Rastrear se já centralizou pelo menos uma vez
   const [selectedCity, setSelectedCity] = useState<string>("all"); // Estado para cidade selecionada
   
   // Filtrar motoboys baseado na cidade selecionada
@@ -410,6 +411,38 @@ export default function MapComponent({ motoboys, center = [-23.5505, -46.6333], 
         markersToAdd.forEach((marker) => {
           marker.addTo(map);
         });
+        
+        // Centralizar automaticamente apenas na primeira vez que os pins são carregados
+        if (!hasCenteredOnceRef.current && validMotoboys.length > 0 && !userInteractedRef.current) {
+          hasCenteredOnceRef.current = true;
+          
+          // Aguardar um pouco para garantir que os marcadores foram renderizados
+          setTimeout(() => {
+            if (!mapRef.current) return;
+            
+            if (validMotoboys.length === 1) {
+              // Se há apenas um motoboy, centralizar nele
+              mapRef.current.setView(
+                [validMotoboys[0].currentLat!, validMotoboys[0].currentLng!], 
+                15,
+                { animate: true }
+              );
+            } else {
+              // Se há múltiplos motoboys, ajustar bounds
+              const bounds = L.latLngBounds(
+                validMotoboys.map((m) => [m.currentLat!, m.currentLng!] as [number, number])
+              );
+              
+              if (bounds.isValid() && bounds.getNorth() !== bounds.getSouth() && bounds.getEast() !== bounds.getWest()) {
+                mapRef.current.fitBounds(bounds, { 
+                  padding: [50, 50], 
+                  maxZoom: 15,
+                  animate: true
+                });
+              }
+            }
+          }, 300); // Pequeno delay para garantir renderização
+        }
       });
     }
 
@@ -437,6 +470,45 @@ export default function MapComponent({ motoboys, center = [-23.5505, -46.6333], 
         });
       });
     }
+    
+    // Centralizar automaticamente na primeira vez se não há novos marcadores mas há motoboys válidos
+    // Isso cobre o caso onde os motoboys já existem quando o componente monta
+    // Verificar após processar tudo se ainda não centralizou e há marcadores no mapa
+    if (!hasCenteredOnceRef.current && validMotoboys.length > 0 && !userInteractedRef.current && markersToAdd.length === 0) {
+      // Verificar se há marcadores no mapa (pode ser que já existiam antes)
+      const hasMarkersOnMap = Array.from(markers.values()).some(marker => map.hasLayer(marker));
+      
+      if (hasMarkersOnMap) {
+        hasCenteredOnceRef.current = true;
+        
+        // Aguardar um pouco para garantir que o mapa está pronto
+        setTimeout(() => {
+          if (!mapRef.current) return;
+          
+          if (validMotoboys.length === 1) {
+            // Se há apenas um motoboy, centralizar nele
+            mapRef.current.setView(
+              [validMotoboys[0].currentLat!, validMotoboys[0].currentLng!], 
+              15,
+              { animate: true }
+            );
+          } else {
+            // Se há múltiplos motoboys, ajustar bounds
+            const bounds = L.latLngBounds(
+              validMotoboys.map((m) => [m.currentLat!, m.currentLng!] as [number, number])
+            );
+            
+            if (bounds.isValid() && bounds.getNorth() !== bounds.getSouth() && bounds.getEast() !== bounds.getWest()) {
+              mapRef.current.fitBounds(bounds, { 
+                padding: [50, 50], 
+                maxZoom: 15,
+                animate: true
+              });
+            }
+          }
+        }, 500); // Delay um pouco maior para garantir que tudo está renderizado
+      }
+    }
   }, [filteredMotoboys]);
 
   // Função para centralizar o mapa nos motoboys
@@ -448,6 +520,9 @@ export default function MapComponent({ motoboys, center = [-23.5505, -46.6333], 
     if (validMotoboys.length === 0) {
       return;
     }
+    
+    // Marcar que já centralizou (mesmo que manualmente)
+    hasCenteredOnceRef.current = true;
     
     // Resetar flag de interação quando o usuário clica no botão de centralizar
     userInteractedRef.current = false;
