@@ -15,7 +15,12 @@ if (!directUrl && !databaseUrl) {
 }
 
 // Usar DIRECT_DATABASE_URL se disponível (conexão direta), senão DATABASE_URL
-const finalUrl = directUrl || databaseUrl;
+const finalUrl: string = directUrl || databaseUrl || "";
+
+// Garantir que finalUrl não está vazio (já foi verificado acima, mas TypeScript precisa disso)
+if (!finalUrl) {
+  throw new Error("URL do banco de dados não está definida");
+}
 
 // CRÍTICO: Definir a URL ANTES de importar/criar o Prisma Client
 // O Prisma Client lê DATABASE_URL no momento da importação
