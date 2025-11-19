@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -21,6 +21,75 @@ type MapComponentProps = {
   zoom?: number;
 };
 
+// Definição das cidades com suas coordenadas centrais e raios
+const CITIES = [
+  {
+    name: "Todas as cidades",
+    value: "all",
+    centerLat: -26.3044,
+    centerLng: -48.8456,
+    radius: 0.15,
+  },
+  {
+    name: "Joinville",
+    value: "joinville",
+    centerLat: -26.3044,
+    centerLng: -48.8456,
+    radius: 0.15,
+  },
+  {
+    name: "Jaraguá do Sul",
+    value: "jaragua",
+    centerLat: -26.4853,
+    centerLng: -49.0664,
+    radius: 0.1,
+  },
+  {
+    name: "Florianópolis",
+    value: "florianopolis",
+    centerLat: -27.5954,
+    centerLng: -48.5480,
+    radius: 0.2,
+  },
+];
+
+// Função para calcular distância em km entre duas coordenadas
+function distanceInKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371; // Raio da Terra em km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+// Função para determinar a cidade de um motoboy baseado nas coordenadas
+function getCityByCoordinates(lat: number, lng: number): string | null {
+  let closestCity: { name: string; distance: number } | null = null;
+  
+  // Ignorar "Todas as cidades" na busca
+  const citiesToCheck = CITIES.filter(c => c.value !== "all");
+  
+  for (const city of citiesToCheck) {
+    const distance = distanceInKm(lat, lng, city.centerLat, city.centerLng);
+    // Converter raio de graus para km (aproximadamente 1 grau = 111km)
+    const radiusKm = city.radius * 111;
+    
+    if (distance <= radiusKm) {
+      if (!closestCity || distance < closestCity.distance) {
+        closestCity = { name: city.value, distance };
+      }
+    }
+  }
+  
+  return closestCity ? closestCity.name : null;
+}
+
 // Fix para ícones padrão do Leaflet
 if (typeof window !== "undefined") {
   const DefaultIcon = L.Icon.Default.prototype as unknown as {
@@ -38,6 +107,17 @@ export default function MapComponent({ motoboys, center = [-23.5505, -46.6333], 
   const mapRef = useRef<L.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
+  const userInteractedRef = useRef<boolean>(false); // Rastrear se o usuário interagiu com o mapa
+  const [selectedCity, setSelectedCity] = useState<string>("all"); // Estado para cidade selecionada
+  
+  // Filtrar motoboys baseado na cidade selecionada
+  const filteredMotoboys = selectedCity === "all" 
+    ? motoboys 
+    : motoboys.filter((motoboy) => {
+        if (!motoboy.currentLat || !motoboy.currentLng) return false;
+        const motoboyCity = getCityByCoordinates(motoboy.currentLat, motoboy.currentLng);
+        return motoboyCity === selectedCity;
+      });
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -72,6 +152,19 @@ export default function MapComponent({ motoboys, center = [-23.5505, -46.6333], 
         map.invalidateSize();
       }, 100);
 
+      // Detectar interações do usuário (zoom, pan) para prevenir centralização automática
+      map.on('zoomstart', () => {
+        userInteractedRef.current = true;
+      });
+
+      map.on('movestart', () => {
+        userInteractedRef.current = true;
+      });
+
+      map.on('dragstart', () => {
+        userInteractedRef.current = true;
+      });
+
       mapRef.current = map;
     }, 100);
 
@@ -83,15 +176,15 @@ export default function MapComponent({ motoboys, center = [-23.5505, -46.6333], 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Criar mapa apenas uma vez quando o componente montar
 
-  // Atualizar marcadores quando motoboys mudarem
+  // Atualizar marcadores quando motoboys mudarem ou cidade selecionada mudar
   useEffect(() => {
     if (!mapRef.current) return;
 
     const map = mapRef.current;
     const markers = markersRef.current;
 
-    // Filtrar motoboys com localização válida primeiro
-    const validMotoboys = motoboys.filter((m) => m.currentLat && m.currentLng);
+    // Filtrar motoboys com localização válida primeiro (usando filteredMotoboys)
+    const validMotoboys = filteredMotoboys.filter((m) => m.currentLat && m.currentLng);
     
     // Se não há motoboys válidos, limpar todos os marcadores
     if (validMotoboys.length === 0) {
@@ -224,7 +317,10 @@ export default function MapComponent({ motoboys, center = [-23.5505, -46.6333], 
         popupDiv.appendChild(statusDiv);
         popupDiv.appendChild(infoDiv);
         
-        marker.bindPopup(popupDiv);
+        // Desabilitar autoPan para prevenir ajuste automático do mapa quando popup abre
+        marker.bindPopup(popupDiv, {
+          autoPan: false, // Prevenir que o mapa se ajuste automaticamente
+        });
 
         markers.set(motoboy.id, marker);
         markersToAdd.push(marker); // Adicionar à lista para adicionar em batch
@@ -341,17 +437,20 @@ export default function MapComponent({ motoboys, center = [-23.5505, -46.6333], 
         });
       });
     }
-  }, [motoboys]);
+  }, [filteredMotoboys]);
 
   // Função para centralizar o mapa nos motoboys
   const handleCenterMap = () => {
     if (!mapRef.current) return;
     
-    const validMotoboys = motoboys.filter((m) => m.currentLat && m.currentLng);
+    const validMotoboys = filteredMotoboys.filter((m) => m.currentLat && m.currentLng);
     
     if (validMotoboys.length === 0) {
       return;
     }
+    
+    // Resetar flag de interação quando o usuário clica no botão de centralizar
+    userInteractedRef.current = false;
     
     if (validMotoboys.length === 1) {
       // Se há apenas um motoboy, centralizar nele
@@ -382,10 +481,35 @@ export default function MapComponent({ motoboys, center = [-23.5505, -46.6333], 
         ref={containerRef} 
         className="w-full h-full"
       />
-      {/* Botão flutuante para centralizar */}
+      
+      {/* Legenda/Filtro de cidade - posicionado no topo */}
+      <div className="absolute top-4 left-4 z-[1000] bg-slate-900/95 backdrop-blur-sm rounded-lg shadow-lg border border-slate-700 p-3 min-w-[200px]">
+        <label htmlFor="city-filter" className="block text-xs font-semibold text-slate-300 mb-2">
+          Filtrar por cidade
+        </label>
+        <select
+          id="city-filter"
+          value={selectedCity}
+          onChange={(e) => setSelectedCity(e.target.value)}
+          className="w-full bg-slate-800 border border-slate-600 rounded-md px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+        >
+          {CITIES.map((city) => (
+            <option key={city.value} value={city.value} className="bg-slate-800 text-slate-200">
+              {city.name}
+            </option>
+          ))}
+        </select>
+        {selectedCity !== "all" && (
+          <div className="mt-2 text-xs text-slate-400">
+            {filteredMotoboys.filter((m) => m.currentLat && m.currentLng).length} motoboy(s) encontrado(s)
+          </div>
+        )}
+      </div>
+      
+      {/* Botão flutuante para centralizar - posicionado na parte inferior centralizada */}
       <button
         onClick={handleCenterMap}
-        className="absolute bottom-6 right-6 z-[1000] bg-slate-900 hover:bg-slate-800 text-white rounded-full p-3 shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center group"
+        className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-[1000] bg-slate-900 hover:bg-slate-800 text-white rounded-full p-3 shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center group"
         style={{
           width: "56px",
           height: "56px",
