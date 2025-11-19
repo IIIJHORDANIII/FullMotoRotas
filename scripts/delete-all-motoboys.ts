@@ -38,7 +38,12 @@ if (!directUrl && !databaseUrl) {
 
 // Usar DIRECT_DATABASE_URL se disponível (conexão direta), senão DATABASE_URL
 // Se for uma URL do Prisma Data Proxy, tentar extrair a URL direta ou usar DIRECT_DATABASE_URL
-let finalUrl = directUrl || databaseUrl;
+let finalUrl: string = directUrl || databaseUrl || "";
+
+// Garantir que finalUrl não está vazio (já foi verificado acima, mas TypeScript precisa disso)
+if (!finalUrl) {
+  throw new Error("URL do banco de dados não está definida");
+}
 
 // Se a URL começa com prisma:// ou prisma+postgres://, precisamos usar DIRECT_DATABASE_URL
 if (finalUrl.startsWith("prisma://") || finalUrl.startsWith("prisma+postgres://")) {
