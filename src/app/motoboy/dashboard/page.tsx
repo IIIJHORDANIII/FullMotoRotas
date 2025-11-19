@@ -241,7 +241,8 @@ export default function MotoboyDashboardPage() {
         });
       }
     };
-  }, []); // Sem dependências - executar apenas uma vez quando o componente montar
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // updateLocation é estável (useCallback sem dependências), não precisa estar nas deps
 
   useEffect(() => {
     loadAssignments();

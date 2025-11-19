@@ -68,7 +68,8 @@ export default function MotoboyLocationMap({ lat, lng, fullName = "Sua localiza�
         mapRef.current = null;
       }
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Criar mapa apenas uma vez na montagem
 
   // Atualizar marcador quando a localização mudar
   useEffect(() => {
