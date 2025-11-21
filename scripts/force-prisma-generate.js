@@ -75,13 +75,13 @@ if (!fs.existsSync(schemaPath)) {
 }
 
 if (!process.env.DATABASE_URL) {
-  console.error("❌ DATABASE_URL não está definida. Defina a URL do Data Proxy antes de gerar o Prisma Client.");
-  process.exit(1);
-}
-
-console.log(`✓ DATABASE_URL detectada: ${process.env.DATABASE_URL.substring(0, 40)}...`);
-if (!process.env.DATABASE_URL.startsWith("prisma")) {
-  console.warn("⚠ DATABASE_URL não parece ser uma URL de Data Proxy (prisma:// ou prisma+postgres://).");
+  console.warn("⚠ DATABASE_URL não está definida. O Prisma Client será gerado sem validação de conexão.");
+  console.warn("   Isso é normal durante npm install. Configure DATABASE_URL no .env antes de executar a aplicação.");
+} else {
+  console.log(`✓ DATABASE_URL detectada: ${process.env.DATABASE_URL.substring(0, 40)}...`);
+  if (!process.env.DATABASE_URL.startsWith("prisma")) {
+    console.warn("⚠ DATABASE_URL não parece ser uma URL de Data Proxy (prisma:// ou prisma+postgres://).");
+  }
 }
 
 const env = {

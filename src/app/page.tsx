@@ -166,11 +166,11 @@ export default function LandingPage() {
     },
     {
       question: "Quais são os planos disponíveis?",
-      answer: "Oferecemos dois planos principais: Básico e Profissional. O plano Básico inclui gestão completa de pedidos, rastreamento em tempo real, até 100 entregas/mês e suporte por email. O plano Profissional oferece tudo do Básico, além de relatórios avançados, API completa, entregas ilimitadas, suporte prioritário e integrações personalizadas. Ambos os planos incluem app para motoboys, dashboard web e atualizações automáticas.",
+      answer: "Oferecemos três planos flexíveis: Básico, Profissional e Empresarial. O plano Básico custa R$ 0,70 por entrega, com até 200 entregas a R$ 0,70 cada e acima de 200 entregas a R$ 0,85 por entrega adicional. O plano Profissional custa R$ 169,90/mês e inclui até 400 entregas, com entregas adicionais acima de 400 a R$ 0,85 cada. O plano Empresarial custa R$ 199,90/mês e inclui entregas ilimitadas acima de 400 entregas, sendo ideal para restaurantes com alto volume. Todos os planos incluem gestão completa de pedidos, rastreamento em tempo real, app para motoboys, dashboard web e atualizações automáticas.",
     },
     {
       question: "Como funciona a atribuição de motoboys?",
-      answer: "O sistema oferece três modos de atribuição: Manual (você escolhe o motoboy), Automática por proximidade (sistema sugere o motoboy mais próximo usando GPS) e Automática por desempenho (considera histórico de entregas, avaliações e tempo médio). Motoboys recebem notificações push quando são atribuídos e podem aceitar ou recusar. O sistema redistribui automaticamente se um motoboy recusar, garantindo que nenhuma entrega fique sem atendimento.",
+      answer: "O sistema oferece três modos de atribuição: Manual (você escolhe o motoboy), Automática por proximidade (sistema sugere o motoboy mais próximo usando GPS) e Automática por desempenho (considera histórico de entregas, avaliações e tempo médio).",
     },
     {
       question: "Os dados são seguros?",
@@ -187,10 +187,6 @@ export default function LandingPage() {
     {
       question: "Como são calculadas as taxas de entrega?",
       answer: "As taxas são calculadas de forma transparente e personalizável. Você define uma taxa base (ex: R$ 5,00) e uma taxa adicional por quilômetro (ex: R$ 1,50/km). O sistema calcula automaticamente a distância entre o ponto de retirada e entrega usando APIs de geolocalização consolidadas no mercado. Estabelecimentos podem definir raio de entrega máximo, horários de funcionamento e valores diferenciados por região ou horário. Todas as taxas são exibidas claramente antes da confirmação do pedido.",
-    },
-    {
-      question: "O que acontece se um motoboy não aceitar a entrega?",
-      answer: "O sistema possui redistribuição automática inteligente. Se um motoboy recusar ou não responder em até 2 minutos, o sistema automaticamente oferece a corrida para o próximo motoboy disponível mais próximo. Isso garante que nenhuma entrega fique sem atendimento. Estabelecimentos também podem configurar alertas para serem notificados quando houver múltiplas recusas, permitindo intervenção manual se necessário. O histórico de recusas é registrado para análise e melhoria contínua.",
     },
     {
       question: "Posso rastrear múltiplas entregas ao mesmo tempo?",
