@@ -1,11 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 export default function LandingPage() {
-  const router = useRouter();
-
   const features = [
     {
       icon: "🛵",
@@ -221,21 +218,27 @@ export default function LandingPage() {
             priority
           />
         </div>
-        <div className="flex items-center gap-2 sm:gap-4">
-          <button
-            onClick={() => router.push("/login")}
-            className="px-3 sm:px-6 py-1.5 sm:py-2 text-sm sm:text-base text-slate-300 hover:text-slate-100 font-medium transition-colors"
-          >
-            Entrar
-          </button>
-          <button
-            onClick={() => router.push("/register")}
-            className="px-3 sm:px-6 py-1.5 sm:py-2 text-sm sm:text-base bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition-all shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40"
-          >
-            Cadastrar-se
-          </button>
-        </div>
       </nav>
+
+      {/* Construction Banner */}
+      <section className="relative z-50 container mx-auto px-4 sm:px-6 py-6">
+        <div className="max-w-5xl mx-auto">
+          <div className="bg-gradient-to-r from-orange-500/20 to-orange-600/20 border-2 border-orange-500/50 rounded-xl p-6 sm:p-8 text-center backdrop-blur-sm">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <span className="text-4xl animate-pulse">🚧</span>
+              <h2 className="text-2xl sm:text-3xl font-bold text-orange-400">
+                Em Construção
+              </h2>
+            </div>
+            <p className="text-lg sm:text-xl text-slate-200 mb-2">
+              Estamos preparando algo incrível para você!
+            </p>
+            <p className="text-base sm:text-lg text-orange-300 font-semibold">
+              🎉 Lançamento: <span className="text-orange-400 text-xl">15 de Dezembro</span>
+            </p>
+          </div>
+        </div>
+      </section>
 
       {/* Hero Section */}
       <section className="relative z-10 container mx-auto px-4 sm:px-6 py-12 sm:py-20 lg:py-32">
@@ -261,22 +264,6 @@ export default function LandingPage() {
             Conecte estabelecimentos e motoboys em uma plataforma completa. Rastreamento em tempo real,
             gestão de pedidos, métricas detalhadas e muito mais em um só lugar.
           </p>
-
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 animate-fade-in">
-            <button
-              onClick={() => router.push("/register")}
-              className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all shadow-xl shadow-orange-500/25 hover:shadow-orange-500/40 text-lg transform hover:-translate-y-1"
-            >
-            Cadastrar-se
-            </button>
-            <button
-              onClick={() => router.push("/login")}
-              className="w-full sm:w-auto px-8 py-4 bg-slate-800/50 border border-slate-700 text-slate-200 font-semibold rounded-lg hover:bg-slate-800 hover:border-slate-600 transition-all text-lg"
-            >
-              Fazer Login
-            </button>
-          </div>
 
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 max-w-4xl mx-auto animate-fade-in px-4">
@@ -467,12 +454,6 @@ export default function LandingPage() {
                   <span>Acima de 200: R$ 0,85 por entrega adicional</span>
                 </li>
               </ul>
-              <button
-                onClick={() => router.push("/register")}
-                className="w-full px-6 py-3 bg-slate-800 border border-slate-700 text-slate-200 font-semibold rounded-lg hover:bg-slate-700 hover:border-slate-600 transition-all"
-              >
-                Escolher Plano
-              </button>
             </div>
 
             {/* Plano Profissional */}
@@ -496,12 +477,6 @@ export default function LandingPage() {
                   <span>Acima de 400: R$ 0,85 por entrega adicional</span>
                 </li>
               </ul>
-              <button
-                onClick={() => router.push("/register")}
-                className="w-full px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg shadow-orange-500/25"
-              >
-                Escolher Plano
-              </button>
             </div>
 
             {/* Plano Empresarial */}
@@ -521,12 +496,6 @@ export default function LandingPage() {
                   Indicado para restaurantes com alto volume
                 </li>
               </ul>
-              <button
-                onClick={() => router.push("/register")}
-                className="w-full px-6 py-3 bg-slate-800 border border-slate-700 text-slate-200 font-semibold rounded-lg hover:bg-slate-700 hover:border-slate-600 transition-all"
-              >
-                Escolher Plano
-              </button>
             </div>
           </div>
         </div>
@@ -570,24 +539,13 @@ export default function LandingPage() {
             <h2 className="text-4xl sm:text-5xl font-bold text-slate-50 mb-4">
               Pronto para <span className="text-orange-500">transformar</span> suas entregas?
             </h2>
-            <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
+            <p className="text-xl text-slate-300 mb-4 max-w-2xl mx-auto">
               Junte-se a centenas de estabelecimentos e motoboys que já confiam na Motorotas para
               gerenciar suas entregas de forma eficiente.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <button
-                onClick={() => router.push("/register")}
-                className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all shadow-xl shadow-orange-500/25 hover:shadow-orange-500/40 text-lg transform hover:-translate-y-1"
-              >
-                Cadastrar-se
-              </button>
-              <button
-                onClick={() => router.push("/login")}
-                className="w-full sm:w-auto px-8 py-4 bg-slate-800/50 border border-slate-700 text-slate-200 font-semibold rounded-lg hover:bg-slate-800 hover:border-slate-600 transition-all text-lg"
-              >
-                Fazer Login
-              </button>
-            </div>
+            <p className="text-lg text-orange-400 font-semibold">
+              🎯 Lançamento em 15 de Dezembro - Fique atento!
+            </p>
           </div>
         </div>
       </section>
