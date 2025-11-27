@@ -121,6 +121,23 @@ try {
     env,
   });
   console.log("\n✓ Prisma Client gerado com suporte a Data Proxy (sem binários)\n");
+  
+  // Verificar se o modelo Subscription foi gerado corretamente
+  const indexDtsPath = path.join(generatedPrismaPath, "index.d.ts");
+  if (fs.existsSync(indexDtsPath)) {
+    const indexContent = fs.readFileSync(indexDtsPath, "utf8");
+    if (!indexContent.includes("get subscription()")) {
+      console.error("❌ ERRO: Modelo Subscription não encontrado no Prisma Client gerado!");
+      console.error("   Isso pode causar erros de tipo durante o build.");
+      process.exit(1);
+    } else {
+      console.log("✓ Verificação: Modelo Subscription encontrado no Prisma Client");
+    }
+  } else {
+    console.error("❌ ERRO: index.d.ts não encontrado após geração do Prisma Client!");
+    console.error(`   Caminho esperado: ${indexDtsPath}`);
+    process.exit(1);
+  }
 } catch (error) {
   const errorMessage = error instanceof Error ? error.message : String(error);
   console.error("❌ Erro ao executar prisma generate:", errorMessage);

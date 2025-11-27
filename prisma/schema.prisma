@@ -45,6 +45,15 @@ enum AssignmentStatus {
   COMPLETED
 }
 
+/// Status de uma assinatura no Pagar.me
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  PAST_DUE
+  PENDING
+  TRIALING
+}
+
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
@@ -56,8 +65,8 @@ model User {
 
   establishment   EstablishmentProfile?
   motoboy         MotoboyProfile?
-  reviewsAuthored Review[] @relation("UserAuthorReviews")
-  reviewsReceived Review[] @relation("UserTargetReviews")
+  reviewsAuthored Review[]              @relation("UserAuthorReviews")
+  reviewsReceived Review[]              @relation("UserTargetReviews")
 }
 
 model EstablishmentProfile {
@@ -83,20 +92,21 @@ model EstablishmentProfile {
   createdAt                    DateTime          @default(now())
   updatedAt                    DateTime          @updatedAt
 
-  user   User            @relation(fields: [userId], references: [id])
-  orders DeliveryOrder[]
+  user         User            @relation(fields: [userId], references: [id])
+  orders       DeliveryOrder[]
+  subscription Subscription?
 }
 
 model MotoboyProfile {
-  id           String   @id @default(cuid())
-  userId       String   @unique
+  id           String    @id @default(cuid())
+  userId       String    @unique
   fullName     String
-  cpf          String   @unique
+  cpf          String    @unique
   cnhNumber    String
   cnhCategory  String
   vehicleType  String
   phone        String?
-  isAvailable  Boolean  @default(false)
+  isAvailable  Boolean   @default(false)
   currentLat   Float?
   currentLng   Float?
   workSchedule Json?
@@ -105,26 +115,26 @@ model MotoboyProfile {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  user        User                @relation(fields: [userId], references: [id])
+  user        User                 @relation(fields: [userId], references: [id])
   assignments DeliveryAssignment[]
 }
 
 model DeliveryOrder {
-  id               String         @id @default(cuid())
-  establishmentId  String
-  customerName     String
-  customerPhone    String?
-  pickupAddress    String
-  deliveryAddress  String
-  status           DeliveryStatus @default(PENDING)
-  deliveryCode     String         @unique
-  notes            String?
-  distanceKm       Float?
-  deliveryFee      Float?
-  scheduledAt      DateTime?
-  completedAt      DateTime?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  id              String         @id @default(cuid())
+  establishmentId String
+  customerName    String
+  customerPhone   String?
+  pickupAddress   String
+  deliveryAddress String
+  status          DeliveryStatus @default(PENDING)
+  deliveryCode    String         @unique
+  notes           String?
+  distanceKm      Float?
+  deliveryFee     Float?
+  scheduledAt     DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
   establishment EstablishmentProfile @relation(fields: [establishmentId], references: [id])
   assignments   DeliveryAssignment[]
@@ -152,7 +162,7 @@ model DeliveryEvent {
   status    DeliveryStatus
   message   String?
   metadata  Json?
-  createdAt DateTime @default(now())
+  createdAt DateTime       @default(now())
 
   order DeliveryOrder @relation(fields: [orderId], references: [id])
 }
@@ -169,4 +179,21 @@ model Review {
   order  DeliveryOrder @relation(fields: [orderId], references: [id])
   author User          @relation("UserAuthorReviews", fields: [authorId], references: [id])
   target User          @relation("UserTargetReviews", fields: [targetId], references: [id])
+}
+
+model Subscription {
+  id                    String             @id @default(cuid())
+  establishmentId       String             @unique
+  pagarmePlanId         String // ID do plano no Pagar.me
+  pagarmeSubscriptionId String             @unique // ID da assinatura no Pagar.me
+  pagarmeCustomerId     String? // ID do cliente no Pagar.me
+  status                SubscriptionStatus @default(PENDING)
+  currentPeriodStart    DateTime?
+  currentPeriodEnd      DateTime?
+  canceledAt            DateTime?
+  metadata              Json? // Dados adicionais da assinatura
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  establishment EstablishmentProfile @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
 }
