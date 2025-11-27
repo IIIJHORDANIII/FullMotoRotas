@@ -4,19 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 
-interface PagarmePlan {
-  id: string | number;
-  name: string;
-  amount: number; // em centavos
-  days: number;
-  payment_methods?: string[];
-  trial_days?: number;
-  isPerDelivery?: boolean;
-  description?: string;
-  note?: string;
-  isPopular?: boolean;
-}
-
 export default function PlansSection() {
   const router = useRouter();
   const { isAuthenticated, user, token } = useAuth();
