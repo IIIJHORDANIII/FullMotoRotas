@@ -18,7 +18,8 @@
     "create-test-motoboys": "node scripts/create-test-motoboys-helper.js",
     "run-test-motoboys": "node scripts/run-test-motoboys-helper.js",
     "delete-all-motoboys": "node scripts/delete-all-motoboys-helper.js",
-    "migrate": "npx tsx scripts/migrate-database.ts"
+    "migrate": "npx tsx scripts/migrate-database.ts",
+    "create-pagarme-plans": "npx tsx scripts/create-pagarme-plans.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.2.1",

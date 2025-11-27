@@ -83,8 +83,9 @@ model EstablishmentProfile {
   createdAt                    DateTime          @default(now())
   updatedAt                    DateTime          @updatedAt
 
-  user   User            @relation(fields: [userId], references: [id])
-  orders DeliveryOrder[]
+  user         User          @relation(fields: [userId], references: [id])
+  orders       DeliveryOrder[]
+  subscription Subscription?
 }
 
 model MotoboyProfile {
@@ -169,4 +170,30 @@ model Review {
   order  DeliveryOrder @relation(fields: [orderId], references: [id])
   author User          @relation("UserAuthorReviews", fields: [authorId], references: [id])
   target User          @relation("UserTargetReviews", fields: [targetId], references: [id])
+}
+
+/// Status de uma assinatura no Pagar.me
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  PAST_DUE
+  PENDING
+  TRIALING
+}
+
+model Subscription {
+  id                    String             @id @default(cuid())
+  establishmentId       String             @unique
+  pagarmePlanId         String             // ID do plano no Pagar.me
+  pagarmeSubscriptionId String             @unique // ID da assinatura no Pagar.me
+  pagarmeCustomerId     String?            // ID do cliente no Pagar.me
+  status                SubscriptionStatus @default(PENDING)
+  currentPeriodStart    DateTime?
+  currentPeriodEnd      DateTime?
+  canceledAt            DateTime?
+  metadata              Json?              // Dados adicionais da assinatura
+  createdAt             DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  establishment EstablishmentProfile @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
 }

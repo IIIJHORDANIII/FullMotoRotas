@@ -19,17 +19,41 @@ const envPath = resolve(__dirname, "../.env");
 try {
   const envFile = readFileSync(envPath, "utf-8");
   envFile.split("\n").forEach((line) => {
-    const match = line.match(/^([^#=]+)=(.*)$/);
+    // Ignorar linhas vazias e comentários
+    const trimmedLine = line.trim();
+    if (!trimmedLine || trimmedLine.startsWith("#")) {
+      return;
+    }
+    
+    // Procurar por padrão KEY="value" ou KEY=value
+    const match = trimmedLine.match(/^([^#=]+)=["']?([^"']*)["']?$/);
     if (match) {
       const key = match[1].trim();
-      const value = match[2].trim().replace(/^["']|["']$/g, "");
-      if (!process.env[key]) {
+      let value = match[2].trim();
+      
+      // Remover aspas se houver
+      value = value.replace(/^["']|["']$/g, "");
+      
+      if (key && value) {
         process.env[key] = value;
       }
     }
   });
+  
+  // Debug: mostrar variáveis carregadas (apenas primeiros caracteres)
+  console.log("🔍 Variáveis carregadas do .env:");
+  if (process.env.DATABASE_URL) {
+    console.log(`   DATABASE_URL: ${process.env.DATABASE_URL.substring(0, 40)}...`);
+  }
+  if (process.env.DIRECT_DATABASE_URL) {
+    console.log(`   DIRECT_DATABASE_URL: ${process.env.DIRECT_DATABASE_URL.substring(0, 40)}...`);
+  }
+  console.log("");
 } catch (error) {
   console.warn("⚠️  Não foi possível carregar o arquivo .env:", error);
+  if (error instanceof Error) {
+    console.warn("   Erro:", error.message);
+  }
 }
 
 const directUrl = process.env.DIRECT_DATABASE_URL;
