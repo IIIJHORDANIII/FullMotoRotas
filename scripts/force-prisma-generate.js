@@ -168,10 +168,12 @@ export {
   EstablishmentPlan,
   DeliveryStatus,
   AssignmentStatus,
+  SubscriptionStatus,
   type Role as RoleType,
   type EstablishmentPlan as EstablishmentPlanType,
   type DeliveryStatus as DeliveryStatusType,
   type AssignmentStatus as AssignmentStatusType,
+  type SubscriptionStatus as SubscriptionStatusType,
 } from "./index.js";
 `;
 

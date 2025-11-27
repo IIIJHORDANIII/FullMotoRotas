@@ -1,8 +1,10 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma";
 import { requireAuth } from "@/lib/auth-context";
 import { errorResponse, jsonResponse } from "@/lib/http";
+import { AppError, notFound } from "@/lib/errors";
 import { getPagarmeClient } from "@/lib/pagarme";
 import { Role } from "@/generated/prisma/enums";
 import { SubscriptionStatus } from "@/generated/prisma/enums";
@@ -51,7 +53,9 @@ export async function GET(request: NextRequest) {
 
     return jsonResponse({ subscriptions }, 200);
   } catch (error) {
-    return errorResponse(error);
+    return errorResponse(
+      error instanceof Error ? error : new AppError(String(error))
+    );
   }
 }
 
@@ -74,13 +78,12 @@ export async function POST(request: NextRequest) {
     });
 
     if (!establishment) {
-      return errorResponse(new Error("Estabelecimento não encontrado"), 404);
+      return errorResponse(notFound("Estabelecimento não encontrado"));
     }
 
     if (establishment.subscription) {
       return errorResponse(
-        new Error("Estabelecimento já possui uma assinatura ativa"),
-        400
+        new AppError("Estabelecimento já possui uma assinatura ativa", 400)
       );
     }
 
@@ -114,7 +117,7 @@ export async function POST(request: NextRequest) {
         currentPeriodEnd: pagarmeSubscription.current_period_end
           ? new Date(pagarmeSubscription.current_period_end)
           : null,
-        metadata: pagarmeSubscription as any,
+        metadata: pagarmeSubscription as unknown as Prisma.InputJsonValue,
       },
       include: {
         establishment: {
@@ -130,7 +133,9 @@ export async function POST(request: NextRequest) {
 
     return jsonResponse({ subscription }, 201);
   } catch (error) {
-    return errorResponse(error);
+    return errorResponse(
+      error instanceof Error ? error : new AppError(String(error))
+    );
   }
 }
 

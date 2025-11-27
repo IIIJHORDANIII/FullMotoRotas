@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/auth-context";
 import { errorResponse, jsonResponse } from "@/lib/http";
+import { AppError } from "@/lib/errors";
 import { getPagarmeClient } from "@/lib/pagarme";
 import { Role } from "@/generated/prisma/enums";
 
@@ -22,7 +23,9 @@ export async function GET(
 
     return jsonResponse({ plan }, 200);
   } catch (error) {
-    return errorResponse(error);
+    return errorResponse(
+      error instanceof Error ? error : new AppError(String(error))
+    );
   }
 }
 

@@ -1,7 +1,9 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma";
 import { requireAuth } from "@/lib/auth-context";
 import { errorResponse, jsonResponse } from "@/lib/http";
+import { AppError, notFound, forbidden } from "@/lib/errors";
 import { getPagarmeClient } from "@/lib/pagarme";
 import { Role } from "@/generated/prisma/enums";
 import { SubscriptionStatus } from "@/generated/prisma/enums";
@@ -33,7 +35,7 @@ export async function GET(
     });
 
     if (!subscription) {
-      return errorResponse(new Error("Assinatura não encontrada"), 404);
+      return errorResponse(notFound("Assinatura não encontrada"));
     }
 
     // Verificar permissão: ADMIN pode ver todas, ESTABLISHMENT apenas a própria
@@ -41,7 +43,7 @@ export async function GET(
       user.role === Role.ESTABLISHMENT &&
       subscription.establishment.userId !== user.id
     ) {
-      return errorResponse(new Error("Acesso negado"), 403);
+      return errorResponse(forbidden("Acesso negado"));
     }
 
     // Buscar dados atualizados do Pagar.me
@@ -60,7 +62,9 @@ export async function GET(
       200
     );
   } catch (error) {
-    return errorResponse(error);
+    return errorResponse(
+      error instanceof Error ? error : new AppError(String(error))
+    );
   }
 }
 
@@ -87,7 +91,7 @@ export async function DELETE(
     });
 
     if (!subscription) {
-      return errorResponse(new Error("Assinatura não encontrada"), 404);
+      return errorResponse(notFound("Assinatura não encontrada"));
     }
 
     // Verificar permissão
@@ -95,7 +99,7 @@ export async function DELETE(
       user.role === Role.ESTABLISHMENT &&
       subscription.establishment.userId !== user.id
     ) {
-      return errorResponse(new Error("Acesso negado"), 403);
+      return errorResponse(forbidden("Acesso negado"));
     }
 
     // Cancelar no Pagar.me
@@ -110,7 +114,7 @@ export async function DELETE(
       data: {
         status: SubscriptionStatus.CANCELLED,
         canceledAt: new Date(),
-        metadata: cancelledSubscription as any,
+        metadata: cancelledSubscription as unknown as Prisma.InputJsonValue,
       },
       include: {
         establishment: {
@@ -126,7 +130,9 @@ export async function DELETE(
 
     return jsonResponse({ subscription: updated }, 200);
   } catch (error) {
-    return errorResponse(error);
+    return errorResponse(
+      error instanceof Error ? error : new AppError(String(error))
+    );
   }
 }
 

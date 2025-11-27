@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { requireAuth } from "@/lib/auth-context";
 import { errorResponse, jsonResponse } from "@/lib/http";
+import { AppError } from "@/lib/errors";
 import { getPagarmeClient } from "@/lib/pagarme";
 import { Role } from "@/generated/prisma/enums";
 
@@ -28,7 +29,9 @@ export async function GET(request: NextRequest) {
 
     return jsonResponse({ plans }, 200);
   } catch (error) {
-    return errorResponse(error);
+    return errorResponse(
+      error instanceof Error ? error : new AppError(String(error))
+    );
   }
 }
 
@@ -56,7 +59,9 @@ export async function POST(request: NextRequest) {
 
     return jsonResponse({ plan }, 201);
   } catch (error) {
-    return errorResponse(error);
+    return errorResponse(
+      error instanceof Error ? error : new AppError(String(error))
+    );
   }
 }
 

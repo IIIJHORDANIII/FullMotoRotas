@@ -120,11 +120,11 @@ class PagarmeClient {
    * Lista todos os planos
    */
   async listPlans(): Promise<PagarmePlan[]> {
-    const response = await this.request<PagarmePlan[]>("/plans", {
+    const response = await this.request<PagarmePlan[] | { plans: PagarmePlan[] }>("/plans", {
       method: "GET",
     });
     // A API pode retornar um array diretamente ou um objeto com plans
-    return Array.isArray(response) ? response : (response as any).plans || [];
+    return Array.isArray(response) ? response : response.plans || [];
   }
 
   /**
