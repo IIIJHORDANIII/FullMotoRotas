@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma";
 import { requireAuth } from "@/lib/auth-context";
 import { errorResponse, jsonResponse } from "@/lib/http";
-import { AppError, notFound } from "@/lib/errors";
+import { AppError, notFound, forbidden } from "@/lib/errors";
 import { getPagarmeClient } from "@/lib/pagarme";
 import { Role } from "@/generated/prisma/enums";
 import { SubscriptionStatus } from "@/generated/prisma/enums";
@@ -62,20 +62,27 @@ export async function GET(request: NextRequest) {
 /**
  * POST /api/subscriptions
  * Cria uma nova assinatura no Pagar.me
- * Apenas ADMIN pode criar assinaturas
+ * ADMIN e ESTABLISHMENT podem criar assinaturas
  */
 export async function POST(request: NextRequest) {
   try {
-    await requireAuth(request, [Role.ADMIN]);
+    const { user } = await requireAuth(request, [Role.ADMIN, Role.ESTABLISHMENT]);
 
     const body = await request.json();
     const data = createSubscriptionSchema.parse(body);
 
     // Verificar se o estabelecimento existe
-    const establishment = await prisma.establishmentProfile.findUnique({
+    let establishment = await prisma.establishmentProfile.findUnique({
       where: { id: data.establishmentId },
       include: { subscription: true },
     });
+
+    // Se o usuário é ESTABLISHMENT, garantir que está criando assinatura para seu próprio estabelecimento
+    if (user.role === Role.ESTABLISHMENT) {
+      if (!establishment || establishment.userId !== user.id) {
+        return errorResponse(forbidden("Você só pode criar assinatura para seu próprio estabelecimento"));
+      }
+    }
 
     if (!establishment) {
       return errorResponse(notFound("Estabelecimento não encontrado"));

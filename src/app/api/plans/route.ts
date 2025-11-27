@@ -18,12 +18,10 @@ const createPlanSchema = z.object({
 /**
  * GET /api/plans
  * Lista todos os planos do Pagar.me
- * Apenas ADMIN pode listar planos
+ * Público - qualquer pessoa pode visualizar os planos disponíveis
  */
 export async function GET(request: NextRequest) {
   try {
-    await requireAuth(request, [Role.ADMIN]);
-
     const client = getPagarmeClient();
     const plans = await client.listPlans();
 

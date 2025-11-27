@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import PlansSection from "@/components/PlansSection";
 
 export default function LandingPage() {
   const features = [
@@ -420,82 +421,7 @@ export default function LandingPage() {
       </section>
 
       {/* Plans Section */}
-      <section className="relative z-10 py-20 lg:py-28 border-t border-slate-800">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl sm:text-5xl font-bold text-slate-50 mb-4">
-              Escolha o <span className="text-orange-500">plano ideal</span> para você
-            </h2>
-            <p className="text-xl text-slate-400 max-w-2xl mx-auto">
-              Planos flexíveis que se adaptam ao tamanho do seu negócio
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-            {/* Plano Básico */}
-            <div className="p-8 bg-slate-900/50 border border-slate-800 rounded-xl hover:border-orange-500/50 transition-all hover:shadow-lg hover:shadow-orange-500/10">
-              <div className="text-4xl mb-4">📦</div>
-              <h3 className="text-2xl font-bold text-slate-50 mb-2">Plano Básico</h3>
-              <div className="mb-6">
-                <span className="text-3xl font-bold text-orange-500">R$ 0,70</span>
-                <span className="text-slate-400 ml-2">por entrega</span>
-              </div>
-              <ul className="space-y-3 mb-8">
-                <li className="text-slate-300 flex items-start gap-2">
-                  <span className="text-orange-500 mt-1">•</span>
-                  <span>Até 200 entregas: R$ 0,70 por entrega</span>
-                </li>
-                <li className="text-slate-300 flex items-start gap-2">
-                  <span className="text-orange-500 mt-1">•</span>
-                  <span>Acima de 200: R$ 0,85 por entrega adicional</span>
-                </li>
-              </ul>
-            </div>
-
-            {/* Plano Profissional */}
-            <div className="p-8 bg-gradient-to-br from-orange-500/10 to-orange-600/10 border-2 border-orange-500/50 rounded-xl hover:border-orange-500 transition-all hover:shadow-lg hover:shadow-orange-500/20 relative">
-              <div className="absolute top-4 right-4 bg-orange-500 text-white text-xs font-semibold px-3 py-1 rounded-full">
-                POPULAR
-              </div>
-              <div className="text-4xl mb-4">🚀</div>
-              <h3 className="text-2xl font-bold text-slate-50 mb-2">Plano Profissional</h3>
-              <div className="mb-6">
-                <span className="text-3xl font-bold text-orange-500">R$ 169,90</span>
-                <span className="text-slate-400 ml-2">/mês</span>
-              </div>
-              <ul className="space-y-3 mb-8">
-                <li className="text-slate-300 flex items-start gap-2">
-                  <span className="text-orange-500 mt-1">•</span>
-                  <span>Inclui até 400 entregas</span>
-                </li>
-                <li className="text-slate-300 flex items-start gap-2">
-                  <span className="text-orange-500 mt-1">•</span>
-                  <span>Acima de 400: R$ 0,85 por entrega adicional</span>
-                </li>
-              </ul>
-            </div>
-
-            {/* Plano Empresarial */}
-            <div className="p-8 bg-slate-900/50 border border-slate-800 rounded-xl hover:border-orange-500/50 transition-all hover:shadow-lg hover:shadow-orange-500/10">
-              <div className="text-4xl mb-4">🏆</div>
-              <h3 className="text-2xl font-bold text-slate-50 mb-2">Plano Empresarial</h3>
-              <div className="mb-6">
-                <span className="text-3xl font-bold text-orange-500">R$ 199,90</span>
-                <span className="text-slate-400 ml-2">/mês</span>
-              </div>
-              <ul className="space-y-3 mb-8">
-                <li className="text-slate-300 flex items-start gap-2">
-                  <span className="text-orange-500 mt-1">•</span>
-                  <span>Inclui entregas ilimitadas acima de 400</span>
-                </li>
-                <li className="text-slate-400 text-sm italic mt-4">
-                  Indicado para restaurantes com alto volume
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
+      <PlansSection />
 
       {/* FAQ Section */}
       <section className="relative z-10 py-20 lg:py-28 border-t border-slate-800">
