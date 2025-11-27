@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
 import { hashPassword } from "@/lib/auth";
-import { Role } from "@/generated/prisma/enums";
+import { Role, EstablishmentPlan } from "@/generated/prisma/enums";
 
 let bootstrapPromise: Promise<void> | null = null;
 
@@ -98,9 +98,112 @@ async function createDefaultAdmin() {
   }
 }
 
+async function createDefaultEstablishment() {
+  try {
+    const DEFAULT_ESTABLISHMENT_EMAIL = process.env.DEFAULT_ESTABLISHMENT_EMAIL || "estabelecimento@motorotas.app.br";
+    const DEFAULT_ESTABLISHMENT_PASSWORD = process.env.DEFAULT_ESTABLISHMENT_PASSWORD || "Estabelecimento@123";
+
+    console.log(`[Bootstrap] Verificando usuário estabelecimento: ${DEFAULT_ESTABLISHMENT_EMAIL}`);
+    
+    const existing = await prisma.user.findUnique({ 
+      where: { email: DEFAULT_ESTABLISHMENT_EMAIL },
+      include: { establishment: true }
+    });
+
+    if (existing) {
+      console.log(`[Bootstrap] Usuário estabelecimento já existe: ${DEFAULT_ESTABLISHMENT_EMAIL}`);
+      
+      // Garantir que está ativo
+      if (!existing.isActive) {
+        await prisma.user.update({
+          where: { email: DEFAULT_ESTABLISHMENT_EMAIL },
+          data: { isActive: true },
+        });
+        console.log(`[Bootstrap] Usuário estabelecimento reativado: ${DEFAULT_ESTABLISHMENT_EMAIL}`);
+      }
+      
+      // Garantir que o perfil existe e está ativo
+      if (!existing.establishment) {
+        await prisma.establishmentProfile.create({
+          data: {
+            userId: existing.id,
+            name: "Estabelecimento Motorotas",
+            cnpj: "12345678000190",
+            contactEmail: DEFAULT_ESTABLISHMENT_EMAIL,
+            contactPhone: "(11) 98765-4321",
+            addressLine1: "Rua Exemplo, 123",
+            addressLine2: "Centro",
+            city: "São Paulo",
+            state: "SP",
+            postalCode: "01234-567",
+            deliveryRadiusKm: 10,
+            baseDeliveryFee: 5.0,
+            additionalPerKm: 1.5,
+            estimatedDeliveryTimeMinutes: 30,
+            plan: EstablishmentPlan.BASIC,
+            isActive: true,
+          },
+        });
+        console.log(`[Bootstrap] Perfil do estabelecimento criado`);
+      } else if (!existing.establishment.isActive) {
+        await prisma.establishmentProfile.update({
+          where: { userId: existing.id },
+          data: { isActive: true },
+        });
+        console.log(`[Bootstrap] Estabelecimento reativado`);
+      }
+      
+      return;
+    }
+
+    console.log(`[Bootstrap] Criando usuário estabelecimento: ${DEFAULT_ESTABLISHMENT_EMAIL}`);
+    const passwordHash = await hashPassword(DEFAULT_ESTABLISHMENT_PASSWORD);
+
+    await prisma.user.create({
+      data: {
+        email: DEFAULT_ESTABLISHMENT_EMAIL,
+        password: passwordHash,
+        role: Role.ESTABLISHMENT,
+        isActive: true,
+        establishment: {
+          create: {
+            name: "Estabelecimento Motorotas",
+            cnpj: "12345678000190",
+            contactEmail: DEFAULT_ESTABLISHMENT_EMAIL,
+            contactPhone: "(11) 98765-4321",
+            addressLine1: "Rua Exemplo, 123",
+            addressLine2: "Centro",
+            city: "São Paulo",
+            state: "SP",
+            postalCode: "01234-567",
+            deliveryRadiusKm: 10,
+            baseDeliveryFee: 5.0,
+            additionalPerKm: 1.5,
+            estimatedDeliveryTimeMinutes: 30,
+            plan: EstablishmentPlan.BASIC,
+            isActive: true,
+          },
+        },
+      },
+    });
+    
+    console.log(`[Bootstrap] ✅ Usuário estabelecimento criado com sucesso: ${DEFAULT_ESTABLISHMENT_EMAIL}`);
+  } catch (error) {
+    console.error("[Bootstrap] ❌ Erro ao criar estabelecimento padrão:", error);
+    if (error instanceof Error) {
+      console.error("[Bootstrap] Mensagem:", error.message);
+      console.error("[Bootstrap] Stack:", error.stack);
+    }
+    // Não lança erro para não bloquear o sistema
+  }
+}
+
 export function ensureBootstrap(): Promise<void> {
   if (!bootstrapPromise) {
-    bootstrapPromise = createDefaultAdmin();
+    bootstrapPromise = Promise.all([
+      createDefaultAdmin(),
+      createDefaultEstablishment(),
+    ]).then(() => {});
   }
   return bootstrapPromise;
 }

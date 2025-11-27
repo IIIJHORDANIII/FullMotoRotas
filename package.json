@@ -10,6 +10,8 @@
     "lint": "next lint",
     "postinstall": "echo '🔧 Executando postinstall...' && PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 PRISMA_SKIP_DOWNLOAD=1 PRISMA_CLIENT_ENGINE_TYPE=library node scripts/force-prisma-generate.js",
     "ensure-admin": "npx tsx scripts/ensure-admin.ts",
+    "ensure-establishment": "npx tsx scripts/ensure-establishment.ts",
+    "create-establishment": "npx tsx scripts/create-establishment.ts",
     "create-test-users": "npx tsx scripts/create-test-users.ts",
     "create-motoboy": "npx tsx scripts/create-motoboy.ts",
     "create-motoboy-lucas": "npx tsx scripts/create-motoboy-lucas.ts",

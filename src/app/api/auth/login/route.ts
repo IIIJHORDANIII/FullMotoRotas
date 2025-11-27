@@ -186,12 +186,14 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       console.log(`[Login] Usuário não encontrado: ${email}`);
-      throw unauthorized("Credenciais inválidas");
+      console.log(`[Login] Verifique se o usuário existe no banco de dados`);
+      throw unauthorized("Email ou senha incorretos");
     }
 
     if (!user.isActive) {
       console.log(`[Login] Usuário inativo: ${email}`);
-      throw unauthorized("Credenciais inválidas");
+      console.log(`[Login] Usuário existe mas está desativado`);
+      throw unauthorized("Conta desativada. Entre em contato com o suporte");
     }
 
     let valid = false;
@@ -205,12 +207,13 @@ export async function POST(request: NextRequest) {
         console.error("[Login] Mensagem:", compareError.message);
         console.error("[Login] Stack:", compareError.stack);
       }
-      throw unauthorized("Credenciais inválidas");
+      throw unauthorized("Erro ao validar credenciais. Tente novamente");
     }
 
     if (!valid) {
       console.log(`[Login] Senha inválida para usuário: ${email}`);
-      throw unauthorized("Credenciais inválidas");
+      console.log(`[Login] Usuário existe mas a senha está incorreta`);
+      throw unauthorized("Email ou senha incorretos");
     }
 
     console.log(`[Login] ✅ Login bem-sucedido: ${email}`);

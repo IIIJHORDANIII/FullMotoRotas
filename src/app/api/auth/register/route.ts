@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
           email,
           password: passwordHash,
           role,
+          isActive: true, // Garantir que está ativo
         },
       });
 

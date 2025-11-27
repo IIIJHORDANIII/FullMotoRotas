@@ -94,6 +94,7 @@ export async function POST(request: NextRequest) {
           email,
           password: passwordHash,
           role: Role.ESTABLISHMENT,
+          isActive: true, // Garantir que está ativo
         },
       });
 
