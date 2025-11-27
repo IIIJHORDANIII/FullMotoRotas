@@ -20,7 +20,6 @@ interface PagarmePlan {
 export default function PlansSection() {
   const router = useRouter();
   const { isAuthenticated, user, token } = useAuth();
-  const [plans, setPlans] = useState<PagarmePlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [subscribingPlanId, setSubscribingPlanId] = useState<string | null>(null);
@@ -38,10 +37,9 @@ export default function PlansSection() {
         throw new Error("Erro ao carregar planos");
       }
 
-      const data = await response.json();
       // A API retorna { data: { plans: [...] } }
-      const plansData = data.data?.plans || data.plans || [];
-      setPlans(plansData);
+      // Não precisamos armazenar os planos pois usamos os planos originais
+      await response.json();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro desconhecido");
       console.error("Erro ao buscar planos:", err);
@@ -133,7 +131,7 @@ export default function PlansSection() {
         throw new Error(errorData.error?.message || "Erro ao criar assinatura");
       }
 
-      const subscriptionData = await subscriptionResponse.json();
+      await subscriptionResponse.json();
       
       alert("Assinatura criada com sucesso! Você será redirecionado para o dashboard.");
       router.push("/dashboard");

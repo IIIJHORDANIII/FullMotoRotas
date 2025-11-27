@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
     const data = createSubscriptionSchema.parse(body);
 
     // Verificar se o estabelecimento existe
-    let establishment = await prisma.establishmentProfile.findUnique({
+    const establishment = await prisma.establishmentProfile.findUnique({
       where: { id: data.establishmentId },
       include: { subscription: true },
     });

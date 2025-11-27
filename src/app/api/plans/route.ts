@@ -20,7 +20,7 @@ const createPlanSchema = z.object({
  * Lista todos os planos do Pagar.me
  * Público - qualquer pessoa pode visualizar os planos disponíveis
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const client = getPagarmeClient();
     const plans = await client.listPlans();
