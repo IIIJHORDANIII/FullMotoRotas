@@ -12,12 +12,12 @@ import { Role } from "@/generated/prisma/enums";
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { planId: string } }
+  { params }: { params: Promise<{ planId: string }> }
 ) {
   try {
     await requireAuth(request, [Role.ADMIN]);
 
-    const { planId } = params;
+    const { planId } = await params;
     const client = getPagarmeClient();
     const plan = await client.getPlan(planId);
 

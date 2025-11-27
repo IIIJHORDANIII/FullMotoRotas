@@ -14,13 +14,14 @@ import { SubscriptionStatus } from "@/generated/prisma/enums";
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { subscriptionId: string } }
+  { params }: { params: Promise<{ subscriptionId: string }> }
 ) {
   try {
     const { user } = await requireAuth(request, [Role.ADMIN, Role.ESTABLISHMENT]);
 
+    const { subscriptionId } = await params;
     const subscription = await prisma.subscription.findUnique({
-      where: { id: params.subscriptionId },
+      where: { id: subscriptionId },
       include: {
         establishment: {
           select: {
@@ -74,13 +75,14 @@ export async function GET(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { subscriptionId: string } }
+  { params }: { params: Promise<{ subscriptionId: string }> }
 ) {
   try {
     const { user } = await requireAuth(request, [Role.ADMIN, Role.ESTABLISHMENT]);
 
+    const { subscriptionId } = await params;
     const subscription = await prisma.subscription.findUnique({
-      where: { id: params.subscriptionId },
+      where: { id: subscriptionId },
       include: {
         establishment: {
           select: {
@@ -110,7 +112,7 @@ export async function DELETE(
 
     // Atualizar no banco de dados
     const updated = await prisma.subscription.update({
-      where: { id: params.subscriptionId },
+      where: { id: subscriptionId },
       data: {
         status: SubscriptionStatus.CANCELLED,
         canceledAt: new Date(),
