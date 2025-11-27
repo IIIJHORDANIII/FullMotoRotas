@@ -45,11 +45,17 @@ if (!directUrl && !databaseUrl) {
 }
 
 // Priorizar DIRECT_DATABASE_URL para migrações (conexão direta é mais confiável)
-const migrationUrl = directUrl || databaseUrl;
+const migrationUrl: string = directUrl || databaseUrl || "";
 const urlType = directUrl ? "DIRECT_DATABASE_URL (conexão direta)" : "DATABASE_URL";
 
+// Garantir que migrationUrl não está vazia (TypeScript safety)
+if (!migrationUrl) {
+  console.error("❌ Erro: URL de banco de dados inválida!");
+  process.exit(1);
+}
+
 console.log(`📊 Usando: ${urlType}`);
-console.log(`🔗 URL: ${migrationUrl.substring(0, 30)}...\n`);
+console.log(`🔗 URL: ${migrationUrl.substring(0, Math.min(30, migrationUrl.length))}...\n`);
 
 try {
   // Definir a URL no ambiente para o Prisma usar
