@@ -11,8 +11,8 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  // Uncomment if you need a separate unpooled connection (Prisma <5.10)
-  // directUrl = env("DATABASE_URL_UNPOOLED")
+  // Usar DIRECT_DATABASE_URL para migrações quando disponível (conexão direta)
+  directUrl = env("DIRECT_DATABASE_URL")
 }
 
 /// Roles de acesso para usuários do sistema.

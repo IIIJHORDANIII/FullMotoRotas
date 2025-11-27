@@ -17,7 +17,8 @@
     "disconnect-motoboy-lucas": "npx tsx scripts/disconnect-motoboy-lucas.ts",
     "create-test-motoboys": "node scripts/create-test-motoboys-helper.js",
     "run-test-motoboys": "node scripts/run-test-motoboys-helper.js",
-    "delete-all-motoboys": "node scripts/delete-all-motoboys-helper.js"
+    "delete-all-motoboys": "node scripts/delete-all-motoboys-helper.js",
+    "migrate": "npx tsx scripts/migrate-database.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.2.1",
