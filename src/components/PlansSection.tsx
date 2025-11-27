@@ -1,39 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function PlansSection() {
   const router = useRouter();
   const { isAuthenticated, user, token } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [subscribingPlanId, setSubscribingPlanId] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchPlans();
-  }, []);
-
-  const fetchPlans = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch("/api/plans");
-      
-      if (!response.ok) {
-        throw new Error("Erro ao carregar planos");
-      }
-
-      // A API retorna { data: { plans: [...] } }
-      // Não precisamos armazenar os planos pois usamos os planos originais
-      await response.json();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro desconhecido");
-      console.error("Erro ao buscar planos:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSubscribe = async (planId: string) => {
     // Verificar se o usuário está autenticado
@@ -56,24 +30,30 @@ export default function PlansSection() {
       
       // Se o plano for um dos originais, buscar o plano correspondente no Pagar.me
       if (planId === "basic" || planId === "professional" || planId === "enterprise") {
-        const plansResponse = await fetch("/api/plans");
-        if (plansResponse.ok) {
-          const plansData = await plansResponse.json();
-          const pagarmePlans = plansData.data?.plans || plansData.plans || [];
-          
-          // Mapear planos originais para planos do Pagar.me
-          // Plano Básico -> primeiro plano do Pagar.me (ou o mais barato)
-          // Plano Profissional -> segundo plano do Pagar.me
-          // Plano Empresarial -> terceiro plano do Pagar.me (ou o mais caro)
-          if (planId === "basic" && pagarmePlans.length > 0) {
-            pagarmePlanId = String(pagarmePlans[0].id);
-          } else if (planId === "professional" && pagarmePlans.length > 1) {
-            pagarmePlanId = String(pagarmePlans[1].id);
-          } else if (planId === "enterprise" && pagarmePlans.length > 0) {
-            // Pegar o plano mais caro para empresarial
-            const sortedPlans = [...pagarmePlans].sort((a, b) => b.amount - a.amount);
-            pagarmePlanId = String(sortedPlans[0].id);
+        try {
+          const plansResponse = await fetch("/api/plans");
+          if (plansResponse.ok) {
+            const plansData = await plansResponse.json();
+            const pagarmePlans = plansData.data?.plans || plansData.plans || [];
+            
+            // Mapear planos originais para planos do Pagar.me
+            // Plano Básico -> primeiro plano do Pagar.me (ou o mais barato)
+            // Plano Profissional -> segundo plano do Pagar.me
+            // Plano Empresarial -> terceiro plano do Pagar.me (ou o mais caro)
+            if (planId === "basic" && pagarmePlans.length > 0) {
+              pagarmePlanId = String(pagarmePlans[0].id);
+            } else if (planId === "professional" && pagarmePlans.length > 1) {
+              pagarmePlanId = String(pagarmePlans[1].id);
+            } else if (planId === "enterprise" && pagarmePlans.length > 0) {
+              // Pegar o plano mais caro para empresarial
+              const sortedPlans = [...pagarmePlans].sort((a: { amount: number }, b: { amount: number }) => b.amount - a.amount);
+              pagarmePlanId = String(sortedPlans[0].id);
+            }
           }
+        } catch (err) {
+          // Se falhar ao buscar planos do Pagar.me, usar o ID original
+          // Isso permite que a assinatura continue mesmo se a API do Pagar.me estiver indisponível
+          console.warn("Não foi possível buscar planos do Pagar.me, usando ID original:", err);
         }
       }
       
@@ -179,27 +159,7 @@ export default function PlansSection() {
           </p>
         </div>
 
-        {loading && (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
-            <p className="mt-4 text-slate-400">Carregando planos...</p>
-          </div>
-        )}
-
-        {error && (
-          <div className="text-center py-12">
-            <p className="text-red-400 mb-4">{error}</p>
-            <button
-              onClick={fetchPlans}
-              className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors"
-            >
-              Tentar novamente
-            </button>
-          </div>
-        )}
-
-        {!loading && !error && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
             {displayPlans.map((plan, index) => {
               const isPopular = plan.isPopular || index === 1;
               const price = (plan.amount / 100).toFixed(2).replace(".", ",");
@@ -271,8 +231,7 @@ export default function PlansSection() {
                 </div>
               );
             })}
-          </div>
-        )}
+        </div>
       </div>
     </section>
   );
